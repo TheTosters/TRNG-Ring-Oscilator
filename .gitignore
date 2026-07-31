@@ -55,4 +55,7 @@ dkms.conf
 *.dwo
 *.bin
 fp-info-cache
-/Rev-1/hardware/RO-Trng-backups/**
+Rev-1/hardware/RO-Trng-backups/**
+Rev-1/firmware/Release/**
+Rev-1/firmware/Debug/**
+*.zip
