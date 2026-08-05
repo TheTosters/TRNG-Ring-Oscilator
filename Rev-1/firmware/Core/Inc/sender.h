@@ -9,7 +9,7 @@ typedef enum {
 } SenderState_t;
 
 SenderState_t updateSender();
-void sendEntropyToHost(uint8_t* buffer, uint16_t len);
+void sendEntropyToHost(const uint8_t* buffer, uint16_t len);
 void onTransmitDone();
 
 #endif // SENDER_H

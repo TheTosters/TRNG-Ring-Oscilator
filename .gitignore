@@ -58,4 +58,5 @@ fp-info-cache
 Rev-1/hardware/RO-Trng-backups/**
 Rev-1/firmware/Release/**
 Rev-1/firmware/Debug/**
+Rev-2/hardware/RO-hardware-backups/**
 *.zip

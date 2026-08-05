@@ -35,7 +35,7 @@ inline SenderState_t updateSender() {
 	return state;
 }
 
-void sendEntropyToHost(uint8_t* buffer, uint16_t len) {
+void sendEntropyToHost(const uint8_t* buffer, uint16_t len) {
 	if (state == IDLE) {
 		usb_tx_length = len <= TRANSMIT_BUFFER_SIZE ? len : TRANSMIT_BUFFER_SIZE;
 		memcpy(transmitBuffer, buffer, usb_tx_length);

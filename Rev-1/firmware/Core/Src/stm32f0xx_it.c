@@ -32,7 +32,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+/* CubeMX regenerate "HAL_TIM_IRQHandler(&htim14);" beyond USER CODE blocks.
+   This macro neutralize it— flag UIF is cleared by us in the entry to ISR handler.
+   This file uses only one timer, no more! */
+#define HAL_TIM_IRQHandler(h)   ((void)(h))
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -149,6 +152,8 @@ void SysTick_Handler(void)
 void TIM14_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM14_IRQn 0 */
+  TIM14->SR = 0;	//should be first DO NOT CHANGE
+
   //latch up/down
   GPIOA->BRR = GPIO_PIN_5;
   __NOP();
@@ -160,7 +165,6 @@ void TIM14_IRQHandler(void)
   collectEntropyBits(ro_value);
 
   /* USER CODE END TIM14_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim14);
   /* USER CODE BEGIN TIM14_IRQn 1 */
 
   /* USER CODE END TIM14_IRQn 1 */

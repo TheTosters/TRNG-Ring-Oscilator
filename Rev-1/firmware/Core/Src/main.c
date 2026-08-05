@@ -94,15 +94,16 @@ int main(void)
   MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
 
-	loadConfiguration();
+  loadConfiguration();
+  HAL_TIM_Base_Start_IT(&htim14);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-    /* USER CODE END WHILE */
+		/* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+		/* USER CODE BEGIN 3 */
 		//look also into usbd_cdc.c method CDC_Receive_FS
 		//and stm32f0xx_it method TIM14_IRQHandler
 		updateCollector();
