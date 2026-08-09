@@ -6,6 +6,7 @@
  */
 
 #include <string.h>
+#include "stm32f0xx_hal.h"
 #include "entropy_collector.h"
 #include "flash_storage.h"
 #include "tinycrypt/sha256.h"
@@ -14,12 +15,15 @@
 
 #define ACTION_SAVE_CONFIG (0x1)
 #define ACTION_REBUILD_LUT (0x2)
-#define ACTION_SWAP_BUFFER (0x4)
+#define ACTION_RESET_COLLECTOR (0x4)
 
 #define MAGIC_COOKIE (0xDABAD00A)
 
 #define MAX_BUFFER_MULTIPLICITY (9)
 #define DEFAULT_MULTIPLICITY (4)
+
+//PA0..PA4 + PA7; PA5 is the latch output and PA6 drives the LED
+#define VALID_RO_CHANNELS (0b10011111)
 
 #define MAX_ENTROPY_BLOCK_SIZE (MAX_BUFFER_MULTIPLICITY * TC_SHA256_DIGEST_SIZE)
 
@@ -31,15 +35,26 @@ static bool primary_buffer = true;
 static uint8_t* entropy_buffer_to_fill = raw_entropy_block;
 static uint8_t* volatile buffer_to_process = NULL;
 
-volatile static uint32_t raw_entropy_bit_index = 0;
+//Bit accumulator state
+static uint32_t bit_acc  = 0;
+static uint8_t  acc_bits = 0;
+
+//Fill data window
+static uint8_t* fill_ptr = raw_entropy_block;
+static uint8_t* fill_end = raw_entropy_block + DEFAULT_MULTIPLICITY * TC_SHA256_DIGEST_SIZE;
+
+static bool pending_raw_entropy = false;
 static bool use_raw_entropy = false;
 
+static uint32_t buffer_bytes_target = DEFAULT_MULTIPLICITY * TC_SHA256_DIGEST_SIZE;
+
+//next Update actions
 static uint8_t scheduled_action = 0;
 
 static AppConfig_t configuration = {
 		.magic = MAGIC_COOKIE,
 		.selected_entropy_buffor_size = DEFAULT_MULTIPLICITY * TC_SHA256_DIGEST_SIZE,
-		.selected_ro_channels = 0b10011111
+		.selected_ro_channels = VALID_RO_CHANNELS
 };
 
 static uint8_t channels_lut[256];
@@ -65,16 +80,28 @@ static void rebuildChannelLut(void) {
     }
 }
 
+//Primary called in IRQ scope!
 static void swapInputBuffer() {
 	primary_buffer = !primary_buffer;
-	raw_entropy_bit_index = 0;
 	entropy_buffer_to_fill = primary_buffer ? raw_entropy_block : raw_entropy_block2;
-	memset(entropy_buffer_to_fill, 0, MAX_ENTROPY_BLOCK_SIZE);
+	fill_ptr = entropy_buffer_to_fill;
+	fill_end = entropy_buffer_to_fill + buffer_bytes_target;
+}
+
+static void resetCollector(void)
+{
+    use_raw_entropy = pending_raw_entropy;
+    buffer_bytes_target = use_raw_entropy ? TC_SHA256_DIGEST_SIZE
+                                          : configuration.selected_entropy_buffor_size;
+    bit_acc = 0;
+    acc_bits = 0;
+    buffer_to_process = NULL;
+    swapInputBuffer();
 }
 
 inline void useRawEntropy(bool use_raw) {
-	use_raw_entropy = use_raw;
-	scheduled_action |= ACTION_SWAP_BUFFER;
+	pending_raw_entropy = use_raw;
+	scheduled_action |= ACTION_RESET_COLLECTOR;
 	if (use_raw) {
 		constantGlow();
 	} else {
@@ -100,7 +127,7 @@ void useRO(int ringIndex, bool enabled) {
 			configuration.selected_ro_channels &= (~value);
 			blinkFast(2);
 		}
-		scheduled_action |= ACTION_SWAP_BUFFER | ACTION_SAVE_CONFIG | ACTION_REBUILD_LUT;
+		scheduled_action |= ACTION_RESET_COLLECTOR | ACTION_SAVE_CONFIG | ACTION_REBUILD_LUT;
 	}
 }
 
@@ -108,7 +135,7 @@ void setBufferMultiplicity(int multiplicity) {
 	multiplicity = multiplicity < 1 ? 1 : multiplicity;
 	multiplicity = multiplicity > MAX_BUFFER_MULTIPLICITY ? MAX_BUFFER_MULTIPLICITY : multiplicity;
 	configuration.selected_entropy_buffor_size = multiplicity * TC_SHA256_DIGEST_SIZE;
-	scheduled_action |= ACTION_SWAP_BUFFER | ACTION_SAVE_CONFIG | ACTION_REBUILD_LUT;
+	scheduled_action |= ACTION_RESET_COLLECTOR | ACTION_SAVE_CONFIG;
 	blinkSlow(multiplicity);
 }
 
@@ -128,37 +155,21 @@ static void processEntropyBlock() {
 
 static void copyEntropyBitsToBuffer(uint8_t input_data, size_t data_bits_count) {
 
-	uint32_t buffor_size_to_use = use_raw_entropy ? TC_SHA256_DIGEST_SIZE : configuration.selected_entropy_buffor_size;
+	bit_acc  |= (uint32_t)input_data << acc_bits;
+	acc_bits += data_bits_count;
 
-	uint32_t remaining_space = (buffor_size_to_use * 8) - raw_entropy_bit_index;
-	uint32_t bits_to_write_count =
-			(remaining_space < data_bits_count) ? remaining_space : data_bits_count;
+	if (acc_bits >= 8) {
+		*fill_ptr++ = (uint8_t)bit_acc;
+		bit_acc >>= 8;
+		acc_bits -= 8;
 
-	if (bits_to_write_count > 0) {
-		uint8_t data = input_data & ((1 << bits_to_write_count) - 1);
-
-		uint32_t byte = raw_entropy_bit_index >> 3;
-		uint32_t bit_offset = raw_entropy_bit_index & 7;
-
-		entropy_buffer_to_fill[byte] |= (data << bit_offset);
-
-		if (bit_offset + bits_to_write_count > 8) {
-			if (byte + 1 < buffor_size_to_use ) {
-				entropy_buffer_to_fill[byte + 1] |= (data >> (8 - bit_offset));
+		if (fill_ptr == fill_end) {
+			if (buffer_to_process != NULL) {
+				blinkFast(99);	//Error
 			}
+			buffer_to_process = entropy_buffer_to_fill;
+			swapInputBuffer();
 		}
-
-		raw_entropy_bit_index += bits_to_write_count;
-	}
-
-	if (raw_entropy_bit_index >= buffor_size_to_use * 8) {
-		//This buffer should be processed out of IRQ call
-		if (buffer_to_process != NULL) {
-			//GENERAL ERROR
-			blinkFast(99);
-		}
-		buffer_to_process = entropy_buffer_to_fill;
-		scheduled_action |= ACTION_SWAP_BUFFER;
 	}
 }
 
@@ -167,16 +178,21 @@ void updateCollector() {
 		processEntropyBlock();
 		buffer_to_process = NULL;
 	}
-	int action = scheduled_action;
+
+	uint8_t actions;
+	__disable_irq();
+	actions = scheduled_action;
 	scheduled_action = 0;
-	if (action & ACTION_SAVE_CONFIG){
-		save_config(&configuration);
-	}
-	if (action & ACTION_REBUILD_LUT){
-		rebuildChannelLut();
-	}
-	if (action & ACTION_SWAP_BUFFER) {
-		swapInputBuffer();
+	__enable_irq();
+
+	if (actions) {
+		TIM14->CR1 &= ~TIM_CR1_CEN;        /* stop timer for reconfiguration time */
+		if (actions & ACTION_SAVE_CONFIG)     save_config(&configuration);
+		if (actions & ACTION_REBUILD_LUT)     rebuildChannelLut();
+		if (actions & ACTION_RESET_COLLECTOR) resetCollector();
+		TIM14->CNT = 0;                    /* full first period after resume */
+		TIM14->SR = 0;                     /* reset UIF increased in pause time */
+		TIM14->CR1 |= TIM_CR1_CEN;
 	}
 }
 
@@ -189,7 +205,22 @@ void loadConfiguration() {
 	if (configuration.magic != MAGIC_COOKIE) {
 		configuration.magic = MAGIC_COOKIE;
 		configuration.selected_entropy_buffor_size = DEFAULT_MULTIPLICITY * TC_SHA256_DIGEST_SIZE;
-		configuration.selected_ro_channels = 0b10011111;
+		configuration.selected_ro_channels = VALID_RO_CHANNELS;
 	}
+
+	//Flash can hold a half-written record: save_config programs magic first and
+	//the payload second, so a power loss in between leaves a valid magic with
+	//0xFFFF payload. buffer_bytes_target/fill_end are derived from the size, so
+	//a bogus value would push the fill window past the end of the buffers.
+	if (configuration.selected_entropy_buffor_size < TC_SHA256_DIGEST_SIZE
+			|| configuration.selected_entropy_buffor_size > MAX_ENTROPY_BLOCK_SIZE
+			|| (configuration.selected_entropy_buffor_size % TC_SHA256_DIGEST_SIZE) != 0) {
+		configuration.selected_entropy_buffor_size = DEFAULT_MULTIPLICITY * TC_SHA256_DIGEST_SIZE;
+	}
+	configuration.selected_ro_channels &= VALID_RO_CHANNELS;
+
 	rebuildChannelLut();
+	//Derives buffer_bytes_target and the fill window from the loaded size.
+	//Runs before HAL_TIM_Base_Start_IT, so no need for the deferred action path.
+	resetCollector();
 }
