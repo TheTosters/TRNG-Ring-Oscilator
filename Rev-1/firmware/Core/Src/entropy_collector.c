@@ -27,7 +27,16 @@
 
 #define MAX_ENTROPY_BLOCK_SIZE (MAX_BUFFER_MULTIPLICITY * TC_SHA256_DIGEST_SIZE)
 
-static uint8_t processed_entropy_block[TC_SHA256_DIGEST_SIZE];
+#define ENTROPY_BATCH_SIZE (5)
+#define ENTROPY_PROCESS_BUFFER_COUNT (3)
+
+
+//Which processed_entropy_block block is filled now
+static uint8_t processed_entropy_block_index  = 0;
+//How many TC_SHA256_DIGEST_SIZE blocks are already in block pointed by processed_entropy_block_index
+static uint8_t processed_entropy_block_fill_index = 0;
+//Entropy blocks which are filled with conditioned entropy
+static uint8_t processed_entropy_block[ENTROPY_PROCESS_BUFFER_COUNT][TC_SHA256_DIGEST_SIZE * ENTROPY_BATCH_SIZE];
 
 static uint8_t raw_entropy_block[MAX_ENTROPY_BLOCK_SIZE] = { 0 };
 static uint8_t raw_entropy_block2[MAX_ENTROPY_BLOCK_SIZE] = { 0 };
@@ -96,6 +105,7 @@ static void resetCollector(void)
     bit_acc = 0;
     acc_bits = 0;
     buffer_to_process = NULL;
+    processed_entropy_block_fill_index = 0;
     swapInputBuffer();
 }
 
@@ -140,16 +150,35 @@ void setBufferMultiplicity(int multiplicity) {
 }
 
 static void processEntropyBlock() {
+	uint8_t* slot = &processed_entropy_block
+			[processed_entropy_block_index]
+			 [processed_entropy_block_fill_index * TC_SHA256_DIGEST_SIZE];
+
 	if (use_raw_entropy) {
 		//SEND RAW
-		sendEntropyToHost(buffer_to_process, TC_SHA256_DIGEST_SIZE);
+		memcpy(slot, buffer_to_process, TC_SHA256_DIGEST_SIZE);
 	} else {
 		//Pass through SHA256
 		struct tc_sha256_state_struct sha256_state;
 		tc_sha256_init(&sha256_state);
 		tc_sha256_update(&sha256_state, buffer_to_process, configuration.selected_entropy_buffor_size);
-		tc_sha256_final(processed_entropy_block, &sha256_state);
-		sendEntropyToHost(processed_entropy_block, TC_SHA256_DIGEST_SIZE);
+		tc_sha256_final(slot, &sha256_state);
+	}
+
+	if (++processed_entropy_block_fill_index < ENTROPY_BATCH_SIZE) {
+		return;
+	}
+	processed_entropy_block_fill_index = 0;
+
+	if (sendEntropyToHost(
+			processed_entropy_block[processed_entropy_block_index], ENTROPY_BATCH_SIZE * TC_SHA256_DIGEST_SIZE)) {
+		processed_entropy_block_index++;
+		if (processed_entropy_block_index >= ENTROPY_PROCESS_BUFFER_COUNT) {
+			processed_entropy_block_index = 0;
+		}
+	} else {
+		//Overflow error
+		blinkFast(2);
 	}
 }
 
@@ -165,7 +194,7 @@ static void copyEntropyBitsToBuffer(uint8_t input_data, size_t data_bits_count) 
 
 		if (fill_ptr == fill_end) {
 			if (buffer_to_process != NULL) {
-				blinkFast(99);	//Error
+				blinkFast(2);	//Error
 			}
 			buffer_to_process = entropy_buffer_to_fill;
 			swapInputBuffer();

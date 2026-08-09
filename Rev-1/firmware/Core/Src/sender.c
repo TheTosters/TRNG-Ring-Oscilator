@@ -4,17 +4,15 @@
 #include "entropy_collector.h"
 #include "haptic.h"
 
-#define TRANSMIT_BUFFER_SIZE (32)
-
 static volatile SenderState_t state = IDLE;
 
-static uint8_t transmitBuffer[TRANSMIT_BUFFER_SIZE] = { 0 };
+static const uint8_t* usb_tx_buffer;
 static uint16_t usb_tx_length;
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
 static void startTransmition() {
 	state = PREPARE_TO_SEND;
-	uint8_t result = CDC_Transmit_FS(transmitBuffer, usb_tx_length);
+	uint8_t result = CDC_Transmit_FS((uint8_t*)usb_tx_buffer, usb_tx_length);
 
 	if (result == USBD_OK) {
 		state = SENDING;
@@ -35,13 +33,15 @@ inline SenderState_t updateSender() {
 	return state;
 }
 
-void sendEntropyToHost(const uint8_t* buffer, uint16_t len) {
+bool sendEntropyToHost(const uint8_t* buffer, uint16_t len) {
 	if (state == IDLE) {
-		usb_tx_length = len <= TRANSMIT_BUFFER_SIZE ? len : TRANSMIT_BUFFER_SIZE;
-		memcpy(transmitBuffer, buffer, usb_tx_length);
+		usb_tx_buffer = buffer;
+		usb_tx_length = len;
 		startTransmition();
+		return true;
 	} else {
 		//GENERAL ERROR
-		blinkFast(99);
+		blinkFast(2);
+		return false;
 	}
 }
