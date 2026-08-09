@@ -261,28 +261,38 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
-  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+  //A host that writes several characters at once delivers them in a single OUT
+  //packet, so every byte has to be dispatched - not just Buf[0].
+  for (uint32_t i = 0; i < *Len; i++) {
+	  //Any byte lifts the freeze set by the '?' / '/' report
+	  resumeTransfer();
 
-  if (*Len > 0) {
-	  uint8_t selected = Buf[0];
+	  uint8_t selected = Buf[i];
 	  if (selected >= 'a' && selected <= 'f') {
-		  int bitIndex = selected - 'a';
-		  useRO(bitIndex, true);
+		  useRO(selected - 'a', true);
 	  } else if (selected >= 'A' && selected <= 'F') {
-		  int bitIndex = selected - 'A';
-		  useRO(bitIndex, false);
+		  useRO(selected - 'A', false);
 	  } else if (selected >= '1' && selected <= '9') {
-		  int mult = 1 + (selected - '1');
-		  setBufferMultiplicity(mult);
+		  setBufferMultiplicity(1 + (selected - '1'));
 	  } else if (selected == 'r') {
 		  //Toggle RAW ON
 		  useRawEntropy(true);
 	  } else if (selected == 'R') {
 		  //Toggle RAW OFF
 		  useRawEntropy(false);
+	  } else if (selected == 's') {
+		  saveConfiguration();
+	  } else if (selected == 'l') {
+		  reloadConfiguration();
+	  } else if (selected == '?' || selected == '/') {
+		  requestInfo();
 	  }
   }
+
+  //Re-arm only now: doing it first lets the next packet overwrite Buf while the
+  //loop above is still reading it.
+  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
+  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 
   return (USBD_OK);
   /* USER CODE END 6 */

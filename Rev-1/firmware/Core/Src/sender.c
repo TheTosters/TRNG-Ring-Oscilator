@@ -40,8 +40,7 @@ bool sendEntropyToHost(const uint8_t* buffer, uint16_t len) {
 		startTransmition();
 		return true;
 	} else {
-		//GENERAL ERROR
-		blinkFast(2);
+		//Busy - the caller decides whether this is an error or a retry
 		return false;
 	}
 }

@@ -33,6 +33,13 @@ void start_blink(uint8_t count, BlinkMode_t mode) {
     if (count == 0) {
         return;
     }
+    //Never restart a sequence that is still running. A high rate caller (an error
+    //fired on every dropped batch) would keep pushing last_toggle_time forward,
+    //ledUpdate would never see the interval elapse, and the LED would stay dark
+    //instead of blinking - the exact opposite of what an error signal should do.
+    if (blink_count != 0) {
+        return;
+    }
 	switch(blink_mode) {
 		case BLINK_MODE_OFF:
 		case BLINK_MODE_FAST_OFF:

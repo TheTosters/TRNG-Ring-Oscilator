@@ -16,6 +16,11 @@
 #define ACTION_SAVE_CONFIG (0x1)
 #define ACTION_REBUILD_LUT (0x2)
 #define ACTION_RESET_COLLECTOR (0x4)
+#define ACTION_LOAD_CONFIG (0x8)
+#define ACTION_SEND_INFO (0x10)
+
+//Worst case status report is 119 bytes, see buildInfoReport()
+#define INFO_TEXT_SIZE (128)
 
 #define MAGIC_COOKIE (0xDABAD00A)
 
@@ -60,6 +65,18 @@ static uint32_t buffer_bytes_target = DEFAULT_MULTIPLICITY * TC_SHA256_DIGEST_SI
 //next Update actions
 static uint8_t scheduled_action = 0;
 
+//Status report ('?' / '/'): while frozen nothing but the report is sent and the
+//sampling timer stays stopped, so the counters below keep their meaning.
+static char info_text[INFO_TEXT_SIZE];
+static uint16_t info_length = 0;
+static bool info_pending = false;
+static volatile bool transfer_frozen = false;
+
+//Diagnostics: batches dropped because USB was still busy, and collector blocks
+//dropped because the main loop did not pick the previous one up in time.
+static uint32_t dropped_usb_batches = 0;
+static volatile uint32_t dropped_collector_blocks = 0;
+
 static AppConfig_t configuration = {
 		.magic = MAGIC_COOKIE,
 		.selected_entropy_buffor_size = DEFAULT_MULTIPLICITY * TC_SHA256_DIGEST_SIZE,
@@ -68,6 +85,8 @@ static AppConfig_t configuration = {
 
 static uint8_t channels_lut[256];
 static uint8_t channel_bits;
+
+static void loadAndValidateConfig(void);
 
 static void rebuildChannelLut(void) {
     const uint8_t mask = configuration.selected_ro_channels;
@@ -137,7 +156,7 @@ void useRO(int ringIndex, bool enabled) {
 			configuration.selected_ro_channels &= (~value);
 			blinkFast(2);
 		}
-		scheduled_action |= ACTION_RESET_COLLECTOR | ACTION_SAVE_CONFIG | ACTION_REBUILD_LUT;
+		scheduled_action |= ACTION_RESET_COLLECTOR | ACTION_REBUILD_LUT;
 	}
 }
 
@@ -145,8 +164,104 @@ void setBufferMultiplicity(int multiplicity) {
 	multiplicity = multiplicity < 1 ? 1 : multiplicity;
 	multiplicity = multiplicity > MAX_BUFFER_MULTIPLICITY ? MAX_BUFFER_MULTIPLICITY : multiplicity;
 	configuration.selected_entropy_buffor_size = multiplicity * TC_SHA256_DIGEST_SIZE;
-	scheduled_action |= ACTION_RESET_COLLECTOR | ACTION_SAVE_CONFIG;
+	scheduled_action |= ACTION_RESET_COLLECTOR;
 	blinkSlow(multiplicity);
+}
+
+void saveConfiguration(void) {
+	scheduled_action |= ACTION_SAVE_CONFIG;
+	blinkFast(1);
+}
+
+void reloadConfiguration(void) {
+	scheduled_action |= ACTION_LOAD_CONFIG | ACTION_REBUILD_LUT | ACTION_RESET_COLLECTOR;
+	blinkFast(1);
+}
+
+void requestInfo(void) {
+	transfer_frozen = true;
+	scheduled_action |= ACTION_SEND_INFO;
+}
+
+void resumeTransfer(void) {
+	if (transfer_frozen) {
+		transfer_frozen = false;
+		//Discard whatever was half collected before the freeze
+		scheduled_action |= ACTION_RESET_COLLECTOR;
+	}
+}
+
+static char* appendText(char* p, const char* s) {
+	while (*s) {
+		*p++ = *s++;
+	}
+	return p;
+}
+
+static char* appendU32(char* p, uint32_t v) {
+	char digits[10];
+	uint8_t n = 0;
+	do {
+		digits[n++] = (char)('0' + (v % 10u));
+		v /= 10u;
+	} while (v);
+	while (n) {
+		*p++ = digits[--n];
+	}
+	return p;
+}
+
+static char* appendBin8(char* p, uint8_t v) {
+	for (int8_t i = 7; i >= 0; i--) {
+		*p++ = (v & (1u << i)) ? '1' : '0';
+	}
+	return p;
+}
+
+static void buildInfoReport(void) {
+	//APB1 prescaler is 1 in SystemClock_Config(), so the timer clock equals PCLK1
+	uint32_t sampling_hz = HAL_RCC_GetPCLK1Freq()
+			/ ((TIM14->PSC + 1u) * (TIM14->ARR + 1u));
+	uint32_t raw_bytes_per_s = (sampling_hz * channel_bits) / 8u;
+	//SHA mode emits one digest per buffer_bytes_target of collected entropy
+	uint32_t upload_bytes_per_s = use_raw_entropy
+			? raw_bytes_per_s
+			: (raw_bytes_per_s * TC_SHA256_DIGEST_SIZE) / buffer_bytes_target;
+
+	char* p = info_text;
+	p = appendText(p, "\r\nCH=");
+	p = appendBin8(p, configuration.selected_ro_channels);
+	p = appendText(p, " N=");
+	p = appendU32(p, channel_bits);
+	p = appendText(p, "\r\nFS=");
+	p = appendU32(p, sampling_hz);
+	p = appendText(p, "Hz\r\nBUF=");
+	p = appendU32(p, buffer_bytes_target);
+	//How many collected 32B blocks are folded into one emitted block. RAW is 1:1,
+	//SHA256 equals the buffer multiplicity.
+	p = appendText(p, "B RATIO=");
+	p = appendU32(p, buffer_bytes_target / TC_SHA256_DIGEST_SIZE);
+	p = appendText(p, ":1\r\nMODE=");
+	p = appendText(p, use_raw_entropy ? "RAW" : "SHA256");
+	p = appendText(p, "\r\nUP=");
+	p = appendU32(p, upload_bytes_per_s);
+	p = appendText(p, "B/s\r\nDROP usb=");
+	p = appendU32(p, dropped_usb_batches);
+	p = appendText(p, " col=");
+	p = appendU32(p, dropped_collector_blocks);
+	p = appendText(p, "\r\n");
+
+	info_length = (uint16_t)(p - info_text);
+	info_pending = true;
+
+	//Counters are cleared once they have been formatted, so every report answers
+	//"what was dropped since the previous report" instead of accumulating the idle
+	//time when no host was draining the endpoint. dropped_collector_blocks is
+	//written by the TIM14 ISR, hence the critical section.
+	dropped_usb_batches = 0;
+	__disable_irq();
+	dropped_collector_blocks = 0;
+	__enable_irq();
 }
 
 static void processEntropyBlock() {
@@ -178,6 +293,7 @@ static void processEntropyBlock() {
 		}
 	} else {
 		//Overflow error
+		dropped_usb_batches++;
 		blinkFast(2);
 	}
 }
@@ -194,6 +310,7 @@ static void copyEntropyBitsToBuffer(uint8_t input_data, size_t data_bits_count) 
 
 		if (fill_ptr == fill_end) {
 			if (buffer_to_process != NULL) {
+				dropped_collector_blocks++;
 				blinkFast(2);	//Error
 			}
 			buffer_to_process = entropy_buffer_to_fill;
@@ -203,7 +320,7 @@ static void copyEntropyBitsToBuffer(uint8_t input_data, size_t data_bits_count) 
 }
 
 void updateCollector() {
-	if (buffer_to_process != NULL) {
+	if (!transfer_frozen && buffer_to_process != NULL) {
 		processEntropyBlock();
 		buffer_to_process = NULL;
 	}
@@ -216,12 +333,21 @@ void updateCollector() {
 
 	if (actions) {
 		TIM14->CR1 &= ~TIM_CR1_CEN;        /* stop timer for reconfiguration time */
+		if (actions & ACTION_LOAD_CONFIG)     loadAndValidateConfig();
 		if (actions & ACTION_SAVE_CONFIG)     save_config(&configuration);
 		if (actions & ACTION_REBUILD_LUT)     rebuildChannelLut();
 		if (actions & ACTION_RESET_COLLECTOR) resetCollector();
-		TIM14->CNT = 0;                    /* full first period after resume */
-		TIM14->SR = 0;                     /* reset UIF increased in pause time */
-		TIM14->CR1 |= TIM_CR1_CEN;
+		if (actions & ACTION_SEND_INFO)       buildInfoReport();
+		if (!transfer_frozen) {            /* stays stopped while the report is up */
+			TIM14->CNT = 0;                /* full first period after resume */
+			TIM14->SR = 0;                 /* reset UIF increased in pause time */
+			TIM14->CR1 |= TIM_CR1_CEN;
+		}
+	}
+
+	//Retried until the sender is free, e.g. when an entropy batch was in flight
+	if (info_pending && sendEntropyToHost((const uint8_t*)info_text, info_length)) {
+		info_pending = false;
 	}
 }
 
@@ -229,7 +355,7 @@ inline void collectEntropyBits(uint8_t data) {
 	copyEntropyBitsToBuffer(channels_lut[data], channel_bits);
 }
 
-void loadConfiguration() {
+static void loadAndValidateConfig(void) {
 	load_config(&configuration);
 	if (configuration.magic != MAGIC_COOKIE) {
 		configuration.magic = MAGIC_COOKIE;
@@ -247,7 +373,10 @@ void loadConfiguration() {
 		configuration.selected_entropy_buffor_size = DEFAULT_MULTIPLICITY * TC_SHA256_DIGEST_SIZE;
 	}
 	configuration.selected_ro_channels &= VALID_RO_CHANNELS;
+}
 
+void loadConfiguration() {
+	loadAndValidateConfig();
 	rebuildChannelLut();
 	//Derives buffer_bytes_target and the fill window from the loaded size.
 	//Runs before HAL_TIM_Base_Start_IT, so no need for the deferred action path.

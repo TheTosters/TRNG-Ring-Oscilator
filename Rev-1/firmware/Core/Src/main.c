@@ -171,12 +171,17 @@ static void MX_TIM14_Init(void)
   /* USER CODE END TIM14_Init 0 */
 
   /* USER CODE BEGIN TIM14_Init 1 */
-
+  //Time constants:
+	// 60kHz - htim14.Init.Period = 799;
+	// 70kHz - htim14.Init.Period = 685;
+	// 80kHz - htim14.Init.Period = 599;
+	// 90kHz - htim14.Init.Period = 532;
+	// 100kHz - htim14.Init.Period = 479;
   /* USER CODE END TIM14_Init 1 */
   htim14.Instance = TIM14;
   htim14.Init.Prescaler = 0;
   htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim14.Init.Period = 599;
+  htim14.Init.Period = 479;
   htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
