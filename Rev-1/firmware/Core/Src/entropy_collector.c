@@ -19,8 +19,8 @@
 #define ACTION_LOAD_CONFIG (0x8)
 #define ACTION_SEND_INFO (0x10)
 
-//Worst case status report is 119 bytes, see buildInfoReport()
-#define INFO_TEXT_SIZE (128)
+//Worst case status report is 149 bytes, see buildInfoReport()
+#define INFO_TEXT_SIZE (160)
 
 #define MAGIC_COOKIE (0xDABAD00A)
 
@@ -77,6 +77,10 @@ static volatile bool transfer_frozen = false;
 static uint32_t dropped_usb_batches = 0;
 static volatile uint32_t dropped_collector_blocks = 0;
 
+//Diagnostics: what the host actually sent, see noteReceivedByte()
+static volatile uint8_t last_rx_byte = 0;
+static volatile uint32_t rx_byte_count = 0;
+
 static AppConfig_t configuration = {
 		.magic = MAGIC_COOKIE,
 		.selected_entropy_buffor_size = DEFAULT_MULTIPLICITY * TC_SHA256_DIGEST_SIZE,
@@ -85,6 +89,17 @@ static AppConfig_t configuration = {
 
 static uint8_t channels_lut[256];
 static uint8_t channel_bits;
+
+//Command letter order 'a'..'f' mapped to port bits. PA5 drives the latch and PA6
+//the LED, which is why channel 'f' lives on PA7 instead of PA5.
+static const uint8_t ro_channel_bit[6] = {
+	0b00000001,	//PA0 - 'a'
+	0b00000010,	//PA1 - 'b'
+	0b00000100,	//PA2 - 'c'
+	0b00001000,	//PA3 - 'd'
+	0b00010000,	//PA4 - 'e'
+	0b10000000,	//PA7 - 'f'
+};
 
 static void loadAndValidateConfig(void);
 
@@ -140,15 +155,7 @@ inline void useRawEntropy(bool use_raw) {
 
 void useRO(int ringIndex, bool enabled) {
 	if (ringIndex >=0 && ringIndex <= 5) {
-		uint8_t bitMasks[] = {
-			  0b00000001,	//PA0
-			  0b00000010,	//PA1
-			  0b00000100,	//PA2
-			  0b00001000,	//PA3
-			  0b00010000,	//PA4
-			  0b10000000,	//PA7
-			};
-		uint8_t value= bitMasks[ringIndex];
+		uint8_t value = ro_channel_bit[ringIndex];
 		if (enabled) {
 			configuration.selected_ro_channels |= value;
 			blinkFast(4);
@@ -191,6 +198,14 @@ void resumeTransfer(void) {
 	}
 }
 
+void noteReceivedByte(uint8_t c) {
+	rx_byte_count++;
+	if (c != '?' && c != '/') {
+		//Keep the byte before the report request, otherwise RX would always be '?'
+		last_rx_byte = c;
+	}
+}
+
 static char* appendText(char* p, const char* s) {
 	while (*s) {
 		*p++ = *s++;
@@ -211,9 +226,19 @@ static char* appendU32(char* p, uint32_t v) {
 	return p;
 }
 
-static char* appendBin8(char* p, uint8_t v) {
-	for (int8_t i = 7; i >= 0; i--) {
-		*p++ = (v & (1u << i)) ? '1' : '0';
+static char* appendHex8(char* p, uint8_t v) {
+	static const char hex[] = "0123456789ABCDEF";
+	*p++ = hex[v >> 4];
+	*p++ = hex[v & 0x0F];
+	return p;
+}
+
+//Enabled channels as their command letters, disabled ones as '.', in 'a'..'f'
+//order. Reads directly as the commands that produced it, and hides the two port
+//bits (latch, LED) that can never be channels.
+static char* appendChannels(char* p, uint8_t mask) {
+	for (uint8_t i = 0; i < 6; i++) {
+		*p++ = (mask & ro_channel_bit[i]) ? (char)('A' + i) : '.';
 	}
 	return p;
 }
@@ -230,7 +255,7 @@ static void buildInfoReport(void) {
 
 	char* p = info_text;
 	p = appendText(p, "\r\nCH=");
-	p = appendBin8(p, configuration.selected_ro_channels);
+	p = appendChannels(p, configuration.selected_ro_channels);
 	p = appendText(p, " N=");
 	p = appendU32(p, channel_bits);
 	p = appendText(p, "\r\nFS=");
@@ -241,7 +266,11 @@ static void buildInfoReport(void) {
 	//SHA256 equals the buffer multiplicity.
 	p = appendText(p, "B RATIO=");
 	p = appendU32(p, buffer_bytes_target / TC_SHA256_DIGEST_SIZE);
-	p = appendText(p, ":1\r\nMODE=");
+	//CFG is the requested size, BUF the one the collector actually runs on. They
+	//differ only if a command reached the config but resetCollector did not apply it.
+	p = appendText(p, ":1 CFG=");
+	p = appendU32(p, configuration.selected_entropy_buffor_size);
+	p = appendText(p, "\r\nMODE=");
 	p = appendText(p, use_raw_entropy ? "RAW" : "SHA256");
 	p = appendText(p, "\r\nUP=");
 	p = appendU32(p, upload_bytes_per_s);
@@ -249,6 +278,11 @@ static void buildInfoReport(void) {
 	p = appendU32(p, dropped_usb_batches);
 	p = appendText(p, " col=");
 	p = appendU32(p, dropped_collector_blocks);
+	//Last non-report byte the host sent, as hex, plus how many bytes arrived in total
+	p = appendText(p, "\r\nRX=");
+	p = appendHex8(p, last_rx_byte);
+	p = appendText(p, " CNT=");
+	p = appendU32(p, rx_byte_count);
 	p = appendText(p, "\r\n");
 
 	info_length = (uint16_t)(p - info_text);

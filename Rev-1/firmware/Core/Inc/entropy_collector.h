@@ -35,6 +35,11 @@ void requestInfo(void);
 //Lifts the freeze set by requestInfo(). Harmless when not frozen.
 void resumeTransfer(void);
 
+//Diagnostics: records every byte the host sent so the '?' report can show what
+//actually arrived. '?' and '/' are counted but do not overwrite the last byte,
+//so the report shows the command that preceded it.
+void noteReceivedByte(uint8_t c);
+
 void collectEntropyBits(uint8_t data);
 
 void updateCollector();

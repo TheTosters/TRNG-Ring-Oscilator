@@ -268,6 +268,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	  resumeTransfer();
 
 	  uint8_t selected = Buf[i];
+	  noteReceivedByte(selected);
 	  if (selected >= 'a' && selected <= 'f') {
 		  useRO(selected - 'a', true);
 	  } else if (selected >= 'A' && selected <= 'F') {
