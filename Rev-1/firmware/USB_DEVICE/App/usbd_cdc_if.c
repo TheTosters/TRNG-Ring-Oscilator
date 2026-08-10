@@ -261,14 +261,31 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
+  //Commands must be prefixed with '!' because this endpoint also carries the
+  //entropy stream. If anything echoes that stream back - a tty still in cooked
+  //mode during the window between open() and raw mode, ModemManager probing the
+  //port, a second reader - then random bytes land here. 27 of 256 byte values
+  //are commands, so an unprefixed parser gets reprogrammed by roughly every
+  //tenth echoed byte, flash writes included. Requiring the prefix drops that to
+  //27/65536 per position.
+  static bool command_armed = false;
+
   //A host that writes several characters at once delivers them in a single OUT
   //packet, so every byte has to be dispatched - not just Buf[0].
   for (uint32_t i = 0; i < *Len; i++) {
-	  //Any byte lifts the freeze set by the '?' / '/' report
+	  //Any byte lifts the freeze set by the '?' report, prefixed or not. While
+	  //frozen the device is silent, so there is no stream left to echo back.
 	  resumeTransfer();
 
 	  uint8_t selected = Buf[i];
 	  noteReceivedByte(selected);
+
+	  if (!command_armed) {
+		  command_armed = (selected == COMMAND_PREFIX);
+		  continue;
+	  }
+	  command_armed = false;
+
 	  if (selected >= 'a' && selected <= 'f') {
 		  useRO(selected - 'a', true);
 	  } else if (selected >= 'A' && selected <= 'F') {

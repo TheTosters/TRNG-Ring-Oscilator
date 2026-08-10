@@ -11,6 +11,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+//Every command byte must be immediately preceded by this one. The entropy stream
+//shares the endpoint, so an unprefixed parser is reprogrammed by any byte that
+//gets echoed back to the device - see the comment in CDC_Receive_FS.
+#define COMMAND_PREFIX ('!')
+
 //Bitmask of user Rings buffers (0-5). Kept in RAM only, use saveConfiguration()
 //to make it survive a power cycle.
 void useRO(int ringIndex, bool enabled);

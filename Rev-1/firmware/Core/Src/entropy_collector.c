@@ -25,7 +25,24 @@
 #define MAGIC_COOKIE (0xDABAD00A)
 
 #define MAX_BUFFER_MULTIPLICITY (9)
-#define DEFAULT_MULTIPLICITY (4)
+//9:1 gives >=1 bit of assessed entropy per output bit, see Rev-1/entopy_tests/summary.md
+#define DEFAULT_MULTIPLICITY (9)
+
+//SP 800-90B 4.4 health tests, run per channel because the noise source is six
+//independent rings. Cutoffs derived for the worst measured per-channel
+//min-entropy H = 0.08 bit/sample and alpha = 2^-30:
+//  RCT: C = 1 + ceil(-log2(alpha)/H) = 376
+//  APT: W = 1024, C = CRITBINOM(W, 2^-H, 1-alpha) = 1007
+//alpha = 2^-30 puts a false alarm at roughly once per 25 days of running, and
+//one costs a single discarded buffer out of ~260 produced per second.
+#define HEALTH_RCT_CUTOFF (376)
+#define HEALTH_APT_WINDOW (1024)
+#define HEALTH_APT_CUTOFF (1007)
+//"matches > 1007 out of 1024" is the same statement as "non-matches <= 16", and
+//counting non-matches lets a channel be written off as healthy as soon as it has
+//17 of them - after roughly 40 samples of a 1024 sample window. The remaining 96%
+//of the window then costs nothing.
+#define HEALTH_APT_SLACK (HEALTH_APT_WINDOW - HEALTH_APT_CUTOFF - 1)
 
 //PA0..PA4 + PA7; PA5 is the latch output and PA6 drives the LED
 #define VALID_RO_CHANNELS (0b10011111)
@@ -80,6 +97,25 @@ static volatile uint32_t dropped_collector_blocks = 0;
 //Diagnostics: what the host actually sent, see noteReceivedByte()
 static volatile uint8_t last_rx_byte = 0;
 static volatile uint32_t rx_byte_count = 0;
+
+//SP 800-90B health test state, one set of counters per channel. Runs in the main
+//loop over a completed buffer, never in the ISR, so it costs the 100 kHz
+//sampling path nothing. A buffer that fails is discarded before conditioning, so
+//no data derived from a failing source ever reaches USB.
+//RCT is evaluated per window rather than per sample: OR every bit change into a
+//mask, and at the end of a HEALTH_RCT_CUTOFF long window any channel missing from
+//that mask produced no change at all, i.e. a run at least that long. Costs three
+//bitwise ops per sample regardless of the data, where a per-channel run counter
+//costs ~240 cycles per sample - the rings flip their output in ~78% of samples
+//(Markov P_0,1 = 0.80 from ea_non_iid), so there is no sparse case to exploit.
+static uint8_t  rct_prev_sample = 0;
+static uint8_t  rct_changed_mask = 0;
+static uint16_t rct_window_pos = 0;
+static uint8_t  apt_reference = 0;
+static uint8_t  apt_nonmatch[6] = {0};
+static uint8_t  apt_pending = 0;                    //channels not yet proven healthy
+static uint16_t apt_position = HEALTH_APT_WINDOW;   //forces a new window on first sample
+static uint32_t health_failures = 0;
 
 static AppConfig_t configuration = {
 		.magic = MAGIC_COOKIE,
@@ -278,6 +314,8 @@ static void buildInfoReport(void) {
 	p = appendU32(p, dropped_usb_batches);
 	p = appendText(p, " col=");
 	p = appendU32(p, dropped_collector_blocks);
+	p = appendText(p, " health=");
+	p = appendU32(p, health_failures);
 	//Last non-report byte the host sent, as hex, plus how many bytes arrived in total
 	p = appendText(p, "\r\nRX=");
 	p = appendHex8(p, last_rx_byte);
@@ -293,12 +331,98 @@ static void buildInfoReport(void) {
 	//time when no host was draining the endpoint. dropped_collector_blocks is
 	//written by the TIM14 ISR, hence the critical section.
 	dropped_usb_batches = 0;
+	health_failures = 0;
 	__disable_irq();
 	dropped_collector_blocks = 0;
 	__enable_irq();
 }
 
+/* SP 800-90B 4.4 Repetition Count Test and Adaptive Proportion Test, applied per
+ * channel to a freshly filled noise buffer. Returns false if any channel failed.
+ *
+ * Runs in the main loop, not in the ISR: the tests need the same samples the
+ * collector already stored, so there is no reason to pay for them at 100 kHz.
+ * Both tests keep state across buffers, because an RCT run and an APT window are
+ * both longer than one buffer. */
+static bool healthTestBuffer(const uint8_t* buffer, uint32_t bytes) {
+	const uint8_t channels = channel_bits;
+	if (channels == 0) {
+		return true;                       //no source selected, nothing to test
+	}
+
+	const uint8_t sample_mask = (uint8_t)((1u << channels) - 1);
+	uint32_t acc = 0;
+	uint8_t acc_bits = 0;
+	bool passed = true;
+
+	for (uint32_t i = 0; i < bytes; i++) {
+		acc |= (uint32_t)buffer[i] << acc_bits;
+		acc_bits += 8;
+
+		while (acc_bits >= channels) {
+			const uint8_t sample = (uint8_t)(acc & sample_mask);
+			acc >>= channels;
+			acc_bits -= channels;
+
+			//APT window boundary: any channel still pending never reached 17
+			//non-matches, so its match count exceeded the cutoff - that is a failure.
+			if (apt_position >= HEALTH_APT_WINDOW) {
+				if (apt_pending) {
+					passed = false;
+				}
+				for (uint8_t c = 0; c < 6; c++) {
+					apt_nonmatch[c] = 0;
+				}
+				apt_pending = sample_mask;
+				apt_reference = sample;
+				apt_position = 0;
+			}
+			apt_position++;
+
+			//RCT: three ops per sample, verdict once per window
+			rct_changed_mask |= (uint8_t)(sample ^ rct_prev_sample);
+			rct_prev_sample = sample;
+			if (++rct_window_pos >= HEALTH_RCT_CUTOFF) {
+				if ((rct_changed_mask & sample_mask) != sample_mask) {
+					passed = false;             //a channel never changed in the window
+				}
+				rct_changed_mask = 0;
+				rct_window_pos = 0;
+			}
+
+			//APT: count non-matches, and drop a channel from apt_pending once it has
+			//enough of them to be safe. Once every channel is out, the rest of the
+			//window costs one test.
+			if (apt_pending) {
+				uint8_t differing = (uint8_t)((sample ^ apt_reference) & apt_pending);
+				while (differing) {
+					const uint8_t lowest = (uint8_t)(differing & (uint8_t)(-(int8_t)differing));
+					uint8_t c = 0;
+					while (!(lowest & (1u << c))) {
+						c++;
+					}
+					if (++apt_nonmatch[c] > HEALTH_APT_SLACK) {
+						apt_pending = (uint8_t)(apt_pending & ~lowest);
+					}
+					differing = (uint8_t)(differing & (differing - 1u));
+				}
+			}
+		}
+	}
+
+	return passed;
+}
+
 static void processEntropyBlock() {
+	//Health tests run before conditioning, so a buffer from a source that just
+	//failed is discarded instead of being hashed and shipped. Stronger than
+	//reacting after the fact, and it keeps the failure off the USB stream.
+	if (!healthTestBuffer(buffer_to_process, buffer_bytes_target)) {
+		health_failures++;
+		blinkFast(1);
+		return;
+	}
+
 	uint8_t* slot = &processed_entropy_block
 			[processed_entropy_block_index]
 			 [processed_entropy_block_fill_index * TC_SHA256_DIGEST_SIZE];

@@ -25,6 +25,7 @@ import serial
 
 DEFAULT_PORT = "/dev/ttyACM0"
 DEFAULT_BAUD = 115200          # ignored by CDC-ACM, kept for pyserial's sake
+COMMAND_PREFIX = b"!"          # firmware ignores any command byte without it
 
 REPORT_START = b"CH="          # first field of the '?' report
 REPORT_LAST_FIELD = b"CNT="    # last field, so we know the report is complete
@@ -82,6 +83,7 @@ def main(argv=None):
 
     print(f"{args.port} open. Keys go out as single raw bytes. Ctrl-D quits.")
     print("Try: '?' for the status report, 'r'/'R' for RAW on/off, '1'-'9' for compression.")
+    print(f"Each key is sent as {COMMAND_PREFIX.decode()}<key>; unprefixed bytes are ignored by the device.")
 
     try:
         tty.setraw(stdin_fd)
@@ -92,7 +94,9 @@ def main(argv=None):
                 key = sys.stdin.buffer.raw.read(1)
                 if not key or key == b"\x04":          # EOF or Ctrl-D
                     break
-                port.write(key)
+                # The firmware requires the prefix so that echoed entropy cannot
+                # act as commands. Added here so a key press stays one key press.
+                port.write(COMMAND_PREFIX + key)
 
             if port.fileno() in ready:
                 chunk = port.read(4096)
