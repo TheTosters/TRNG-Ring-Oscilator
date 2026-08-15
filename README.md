@@ -11,7 +11,7 @@ There are currently two revisions.
 **Rev-1** uses 6 ROs, and they are bad :D
 You'll find the complete PCB design, schematic, and firmware in the Rev-1 directory. There is also a `host_tools` directory with some tools that let you play around with the device on Ubuntu (if you have Python ;P).
 
-There is also **Rev-2**, but it's still under active development. Once I get it to a point where I'm happy with it, I'll upload it as well.
+**Rev-2** is also added, however only hardware now. This revision introduces two totally different ring designs, still waiting for shipment to play with it...
 
 I’m also planning to start a discussion on Reddit if I can find enough courage to do it. If I do, I'll add the link here.
 

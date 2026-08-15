@@ -1,0 +1,7 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "FTSH-105-01-L-DV-007-K-P-TR")(type "KiCad")(uri "${KIPRJMOD}/FTSH-105-01-L-DV-007-K-P-TR")(options "")(descr ""))
+  (lib (name "IB0505XT-1WR3")(type "KiCad")(uri "${KIPRJMOD}/IB0505XT-1WR3/IB0505XT-1WR3.pretty")(options "")(descr ""))
+  (lib (name "XKBConnection-TS_1187A_B_AB")(type "KiCad")(uri "${KIPRJMOD}/XKBConnection-TS_1187A_B_AB/XKBConnection-TS_1187A_B_AB.pretty")(options "")(descr ""))
+  (lib (name "USB-C-SMD_HANELECTRICITY_161N-4XVS11")(type "KiCad")(uri "${KIPRJMOD}/USB-C-SMD_HANELECTRICITY_161N-4XVS11")(options "")(descr ""))
+)

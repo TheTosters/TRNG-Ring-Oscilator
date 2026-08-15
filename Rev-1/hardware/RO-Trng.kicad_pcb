@@ -346,6 +346,10 @@
 				)
 			)
 		)
+		(property ki_fp_filters "C_*")
+		(path "/b38ec555-c74a-4390-8d69-dc4468f877ad")
+		(sheetname "/")
+		(sheetfile "RO-Trng.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.146267 -0.51)
@@ -355,7 +359,6 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(net 112)
 			(uuid "c5ccc29a-9b22-463c-86e9-98d178432e90")
 		)
 		(fp_line
@@ -366,7 +369,6 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(net 112)
 			(uuid "8e20a00a-71f3-4ebe-b5bf-26f7f5f7c4bb")
 		)
 		(fp_poly
@@ -379,7 +381,6 @@
 			)
 			(fill no)
 			(layer "F.CrtYd")
-			(net 112)
 			(uuid "d9c29451-47c1-4f1d-a1ad-7878b6b1fc24")
 		)
 		(fp_poly
@@ -392,7 +393,6 @@
 			)
 			(fill no)
 			(layer "F.Fab")
-			(net 112)
 			(uuid "004f4783-4d4a-449f-b467-20f980197b9b")
 		)
 		(fp_text user "${REFERENCE}"
@@ -3644,6 +3644,7 @@
 		(property "Reference" "C9"
 			(at 0 -1.43 90)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "fd3f8a6a-9586-4c07-b4a5-a8b6a8ffbdaa")
 			(effects
 				(font
@@ -3986,7 +3987,7 @@
 			)
 		)
 		(property ki_fp_filters "DIP*W7.62mm* SSOP?14* TSSOP?14*")
-		(path "/38398be3-1b82-481f-b1c1-0cd6b1f81e4d")
+		(path "/f9282fac-8f0b-4b3a-8f26-ccb86af1041b")
 		(sheetname "/")
 		(sheetfile "RO-Trng.kicad_sch")
 		(attr smd)
@@ -5258,7 +5259,7 @@
 				)
 			)
 		)
-		(property "Value" "12pF"
+		(property "Value" "18pF"
 			(at 0 1.16 90)
 			(layer "F.Fab")
 			(hide yes)
@@ -7440,7 +7441,7 @@
 			)
 		)
 		(property ki_fp_filters "DIP*W7.62mm* SSOP?14* TSSOP?14*")
-		(path "/cbfdd5c9-fcd2-4f70-9927-64817664c6a0")
+		(path "/ebdb8a39-75e0-49b3-a0e8-ddbd187f40bc")
 		(sheetname "/")
 		(sheetfile "RO-Trng.kicad_sch")
 		(attr smd)
@@ -7866,6 +7867,10 @@
 				)
 			)
 		)
+		(property ki_fp_filters "R_*")
+		(path "/2c2bb059-becc-462d-85fa-e997644dd33c")
+		(sheetname "/")
+		(sheetfile "RO-Trng.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.153641 0.38)
@@ -8007,7 +8012,7 @@
 			)
 		)
 		(property ki_fp_filters "DIP*W7.62mm* SSOP?14* TSSOP?14*")
-		(path "/6f92ffd4-35bf-48cd-9d47-a8553bb72912")
+		(path "/7e8f7935-9bf4-4e81-9bdb-bd21e86c10bf")
 		(sheetname "/")
 		(sheetfile "RO-Trng.kicad_sch")
 		(attr smd)
@@ -9696,6 +9701,10 @@
 				)
 			)
 		)
+		(property ki_fp_filters "LED* LED_SMD:* LED_THT:*")
+		(path "/a4803bd4-ad8c-4855-859b-ba8dfb269ae4")
+		(sheetname "/")
+		(sheetfile "RO-Trng.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -1.485 -0.735)
@@ -10330,6 +10339,10 @@
 				)
 			)
 		)
+		(property ki_fp_filters "R_*")
+		(path "/2ca2360a-0752-4cab-aac6-0c4773a13b2b")
+		(sheetname "/")
+		(sheetfile "RO-Trng.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.153641 -0.38)
@@ -10339,7 +10352,6 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(net 112)
 			(uuid "30afbd7f-da9e-4d43-ba3a-944a5c57101e")
 		)
 		(fp_line
@@ -10350,7 +10362,6 @@
 				(type solid)
 			)
 			(layer "F.SilkS")
-			(net 112)
 			(uuid "4a9b96a8-1b5f-4224-a22e-d63c39d46b83")
 		)
 		(fp_poly
@@ -10363,7 +10374,6 @@
 			)
 			(fill no)
 			(layer "F.CrtYd")
-			(net 112)
 			(uuid "d4f7bc52-08e2-42c2-9f2c-c57bd7391ef8")
 		)
 		(fp_poly
@@ -10376,7 +10386,6 @@
 			)
 			(fill no)
 			(layer "F.Fab")
-			(net 112)
 			(uuid "f7fae4a5-2805-4a33-99fd-aabaef783ac9")
 		)
 		(fp_text user "${REFERENCE}"
@@ -10737,7 +10746,7 @@
 				)
 			)
 		)
-		(property "Value" "12pF"
+		(property "Value" "18pF"
 			(at 0 1.16 90)
 			(layer "F.Fab")
 			(hide yes)
@@ -10773,7 +10782,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C1523"
+		(property "LCSC" "C1549"
 			(at 0 0 0)
 			(layer "F.SilkS")
 			(hide yes)
