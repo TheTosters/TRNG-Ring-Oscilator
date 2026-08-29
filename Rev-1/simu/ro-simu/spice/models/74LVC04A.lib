@@ -1,0 +1,195 @@
+* ============================================================================
+*  74LVC04A.lib  --  model SPICE inwertera 74LVC04A (Nexperia, Rev.13 2024)
+*  Dla ngspice (KiCad 9 / libngspice-42)
+* ----------------------------------------------------------------------------
+*  Model jest budowany "fizycznie": jedna bramka = 3 wewnetrzne inwertery CMOS,
+*  dokladnie jak schemat logiczny z Fig.3 karty katalogowej (A -> 3 inwertery -> Y).
+*  Dzieki temu model odwzorowuje jednoczesnie:
+*    - opoznienie propagacji i jego zaleznosc od obciazenia,
+*    - IMPULSY PRADU ZASILANIA (przelaczanie wezlow wewnetrznych + prad
+*      przestrzalowy), czyli to co decyduje o zaklocaniu wlasnego zasilania,
+*    - rezystancje wyjsciowa (sile wyjscia).
+*  Model z pojedynczym inwerterem i "pojemnoscia opozniajaca" tego nie potrafi:
+*  pojemnosc Cpd wpieta na stale miedzy VCC i GND NIE generuje zadnego pradu
+*  przelaczania, bo sie nie przelacza.
+*
+*  DANE KATALOGOWE bedace celem kalibracji (VCC=3.3V, 25 C, wartosci typowe):
+*    t_pd    = 2.0 ns    @ CL=50pF, RL=500R, VI=2.7V, tr/tf<=2.5ns (Tab.7/8)
+*    C_PD    = 9.9 pF    na bufor, VCC 3.0..3.6 V                  (Tab.7)
+*    C_I     = 4.0 pF                                              (Tab.6)
+*    V_M     = 1.5 V     przy VCC >= 2.7 V                         (Fig.6)
+*    I_CC    = 0.1 uA    spoczynkowy                               (Tab.6)
+*    V_OH    >= 2.2 V    @ IO=-24mA, VCC=3.0V  (limit, nie typ)    (Tab.6)
+*    V_OL    <= 0.55 V   @ IO=+24mA, VCC=3.0V  (limit, nie typ)    (Tab.6)
+*  Zakres pracy VCC: 1.65..3.6 V.
+*
+*  OGRANICZENIA / SWIADOME UPROSZCZENIA:
+*   1) Karta katalogowa wymienia "Schmitt-trigger action at all inputs", ale
+*      NIE podaje wartosci histerezy dla 74LVC04A. Model nie ma histerezy.
+*      Dla ringu 3-inwerterowego histereza podnosi okres oscylacji; jesli
+*      pomiar na plytce da czestotliwosc nizsza od symulacji, to jest
+*      pierwszy kandydat na przyczyne (obok pojemnosci sciezek).
+*   2) Tranzystory to level=1 (Shichman-Hodges). Wystarczajace do odwzorowania
+*      sily wyjscia, pradu przestrzalowego i opoznien; nie odwzorowuje
+*      efektow krotkiego kanalu ani zaleznosci temperaturowej producenta.
+*   3) Brak diody clampujacej do VCC na wejsciu -- to jest zgodne z ukladem
+*      (wejscia toleruja 5.5 V niezaleznie od VCC). Dioda do GND jest.
+* ============================================================================
+
+* ----------------------------------------------------------------------------
+*  Modele tranzystorow (3.3 V CMOS, ~0.35 um)
+* ----------------------------------------------------------------------------
+.model LVC_NMOS NMOS (level=1 vto=0.65  kp=110u lambda=0.08 gamma=0 phi=0.7)
+.model LVC_PMOS PMOS (level=1 vto=-0.65 kp=42u  lambda=0.10 gamma=0 phi=0.7)
+.model LVC_DCLAMP D (is=1e-14 n=1.0 rs=5 cjo=1.5p bv=8)
+
+* ----------------------------------------------------------------------------
+*  JEDNA BRAMKA (goly krzem, bez pasozytow obudowy)
+*    piny:  IN  OUT  VCC  GND
+* ----------------------------------------------------------------------------
+*  Skalowanie stopni (taper) i pojemnosci wezlow wewnetrznych sa dobrane
+*  numerycznie tak, aby jednoczesnie trafic w t_pd = 2.0 ns @ 50 pF oraz
+*  C_PD = 9.9 pF.  Patrz tb/tb_lvc04a_valid.cir -- ten testbench mierzy oba
+*  parametry i sluzy do rekalibracji po kazdej zmianie.
+*
+*  WARTOSCI PO KALIBRACJI (calib_lvc04a.py, metoda Newtona na 2 celach):
+*      t_pd = 2.002 ns   (cel 2.0 ns)
+*      C_PD = 9.901 pF   (cel 9.9 pF)
+*  Wynikowa rezystancja wyjsciowa Ron ~ 9.6 Ohm, czyli V_OL ~ 0.23 V przy
+*  24 mA -- z duzym zapasem wzgledem limitu 0.55 V, co jest spodziewane
+*  (V_OL/V_OH w karcie to limity, a t_pd to wartosc typowa).
+*
+.subckt LVC04A_GATE IN OUT VCC GND
++ params: wn3=159.785u wp3=419.225u  wn2=17.727u wp2=46.474u
++         wn1=5.270u   wp1=13.894u
++         lch=0.35u  cin=4.0p  c1=1.082p c2=3.245p cself=2.704p  rout=1.2
+
+*  --- wejscie: pojemnosc wejsciowa C_I = 4.0 pF (pad + ESD + bramki) ---
+Cin   IN  GND  {cin}
+Dclp  GND IN   LVC_DCLAMP
+
+*  --- stopien 1 (najslabszy, wnosi wiekszosc opoznienia wewnetrznego) ---
+Mp1   n1  IN  VCC VCC LVC_PMOS L={lch} W={wp1}
+Mn1   n1  IN  GND GND LVC_NMOS L={lch} W={wn1}
+Cn1   n1  GND {c1}
+
+*  --- stopien 2 ---
+Mp2   n2  n1  VCC VCC LVC_PMOS L={lch} W={wp2}
+Mn2   n2  n1  GND GND LVC_NMOS L={lch} W={wn2}
+Cn2   n2  GND {c2}
+
+*  --- stopien 3: stopien wyjsciowy (mocny, 24 mA) ---
+Mp3   oi  n2  VCC VCC LVC_PMOS L={lch} W={wp3}
+Mn3   oi  n2  GND GND LVC_NMOS L={lch} W={wn3}
+Csf   oi  GND {cself}
+Rok   oi  OUT {rout}
+Dclo  GND OUT LVC_DCLAMP
+.ends LVC04A_GATE
+
+* ----------------------------------------------------------------------------
+*  Zgodnosc z dotychczasowa nazwa uzywana w schemacie KiCada.
+*  Kolejnosc pinow jak w polu Sim.Pins: "2=IN 3=GND 4=OUT 5=VCC" -> IN OUT VCC GND
+* ----------------------------------------------------------------------------
+.subckt 74LVC04A_NEX IN OUT VCC GND
+Xg IN OUT VCC GND LVC04A_GATE
+.ends
+
+* ----------------------------------------------------------------------------
+*  JEDNA BRAMKA Z PASOZYTAMI OBUDOWY (TSSOP-14 / SOT402-1)
+*    Do uzycia gdy kazda bramka jest w osobnym ukladzie (np. SOT23-5).
+* ----------------------------------------------------------------------------
+.subckt LVC04A_GATE_PKG IN OUT VCCPIN GNDPIN params: lpin=2.5n rpin=50m lsig=2.0n
+Lvcc VCCPIN a {lpin}
+Rvcc a  vdd  {rpin}
+Lgnd GNDPIN b {lpin}
+Rgnd b  vss  {rpin}
+Lin  IN  ii  {lsig}
+Lout oo  OUT {lsig}
+Xg   ii  oo  vdd vss LVC04A_GATE
+.ends
+
+* ============================================================================
+*  UKLAD HEX 74LVC04A W TSSOP-14 ZAWIERAJACY DWA RINGI PO 3 INWERTERY
+* ============================================================================
+*  TAK JEST ZBUDOWANA REALNA PLYTKA (Rev-1/hardware/RO-Trng.kicad_sch):
+*  ukladu U1/U2/U3 -- kazdy 74LVC04 hex -- zawiera DWA niezalezne ringi:
+*      ring A: bramki 6->5->4  (6Y p12 -> 5A p11, 5Y p10 -> 4A p9, 4Y p8 -> 6A p13)
+*      ring B: bramki 1->2->3  (1Y p2 -> 2A p3, 2Y p4 -> 3A p5, 3Y p6 -> 1A p1)
+*      punkt pomiarowy ringu A = p8  (np. /D0),  ringu B = p6  (np. /D1)
+*  Oba ringi wspoldziela JEDEN pin VCC (14), JEDEN pin GND (7), jeden bonding
+*  i jedna wewnetrzna szyne zasilania na krzemie.
+*
+*  To jest krytyczne dla filtracji: sprzezenie miedzy tymi dwoma ringami
+*  odbywa sie WEWNATRZ obudowy (indukcyjnosc wspolnego pinu VCC i GND +
+*  wspolna szyna na krzemie) i zaden zewnetrzny filtr tego nie usunie.
+*
+*  Parametry pasozytow -- zalozenia inzynierskie, nie dane katalogowe:
+*    lpin  = 2.5 nH   indukcyjnosc wyprowadzenia + bonding TSSOP-14
+*    rpin  = 50 mOhm
+*    cdie  = 15 pF    wlasna pojemnosc szyny zasilania na krzemie
+*    rrail = 0.4 Ohm  rezystancja szyny na krzemie od pada do bramki
+*  Wartosci realistyczne dla tej klasy obudowy; wplyw jest istotny wiec warto
+*  je swiadomie zmieniac przy ocenie wrazliwosci wyniku.
+*
+.subckt LVC04A_HEX_2RING TAPA TAPB VCCPIN GNDPIN
++ params: lpin=2.5n rpin=50m lsig=2.0n rsig=0.3 cdie=100p rrail=0.4 cxa=1f cxb=1f
+
+*  --- pasozyty pinow zasilania (wspolne dla obu ringow!) ---
+Lvcc VCCPIN pv  {lpin}
+Rvcc pv  vdd    {rpin}
+Lgnd GNDPIN pg  {lpin}
+Rgnd pg  vss    {rpin}
+Cdie vdd vss    {cdie}
+
+*  --- szyna na krzemie: osobne odgalezienia do kazdego ringu ---
+Rra  vdd vda    {rrail}
+Rrb  vdd vdb    {rrail}
+Rsa  vss vsa    {rrail}
+Rsb  vss vsb    {rrail}
+Cda  vda vsa    5p
+Cdb  vdb vsb    5p
+
+*  --- RING A: bramki 6 -> 5 -> 4, wyprowadzenie z wyjscia bramki 4 ---
+XA6  a3  a1  vda vsa LVC04A_GATE
+XA5  a1  a2  vda vsa LVC04A_GATE
+XA4  a2  a3  vda vsa LVC04A_GATE
+RtA  a3  ta_ {rsig}
+LtA  ta_ TAPA {lsig}
+*  cxa/cxb: dodatkowa pojemnosc wezla -- odwzorowuje asymetrie obciazenia
+*  sciezkami PCB i wejsciem 74HC174, dzieki czemu ringi maja rozne
+*  czestotliwosci wlasne (inaczej symetryczny model zlewa je w jedna)
+CxA  a1  vsa {cxa}
+
+*  --- RING B: bramki 1 -> 2 -> 3, wyprowadzenie z wyjscia bramki 3 ---
+XB1  b3  b1  vdb vsb LVC04A_GATE
+XB2  b1  b2  vdb vsb LVC04A_GATE
+XB3  b2  b3  vdb vsb LVC04A_GATE
+RtB  b3  tb_ {rsig}
+LtB  tb_ TAPB {lsig}
+CxB  b1  vsb {cxb}
+.ends LVC04A_HEX_2RING
+
+* ----------------------------------------------------------------------------
+*  Wariant hex z JEDNYM ringiem (pozostale bramki niepodlaczone / wejscia
+*  na GND) -- do porownania: ile hałasu na zasilaniu robi 1 ring vs 2 ringi.
+* ----------------------------------------------------------------------------
+.subckt LVC04A_HEX_1RING TAPA VCCPIN GNDPIN
++ params: lpin=2.5n rpin=50m lsig=2.0n rsig=0.3 cdie=100p rrail=0.4 cxa=1f
+Lvcc VCCPIN pv  {lpin}
+Rvcc pv  vdd    {rpin}
+Lgnd GNDPIN pg  {lpin}
+Rgnd pg  vss    {rpin}
+Cdie vdd vss    {cdie}
+Rra  vdd vda    {rrail}
+Rsa  vss vsa    {rrail}
+Cda  vda vsa    5p
+XA6  a3  a1  vda vsa LVC04A_GATE
+XA5  a1  a2  vda vsa LVC04A_GATE
+XA4  a2  a3  vda vsa LVC04A_GATE
+RtA  a3  ta_ {rsig}
+LtA  ta_ TAPA {lsig}
+*  cxa/cxb: dodatkowa pojemnosc wezla -- odwzorowuje asymetrie obciazenia
+*  sciezkami PCB i wejsciem 74HC174, dzieki czemu ringi maja rozne
+*  czestotliwosci wlasne (inaczej symetryczny model zlewa je w jedna)
+CxA  a1  vsa {cxa}
+.ends LVC04A_HEX_1RING

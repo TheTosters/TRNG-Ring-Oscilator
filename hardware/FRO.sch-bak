@@ -1,0 +1,189 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 3 4
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L 74xx:74LS02 U4
+U 1 1 61452F91
+P 3000 2800
+AR Path="/6144ED5F/61452F91" Ref="U4"  Part="1" 
+AR Path="/61489DCD/61452F91" Ref="U3"  Part="1" 
+F 0 "U4" H 3000 3125 50  0000 C CNN
+F 1 "74LCX02FT" H 3000 3034 50  0000 C CNN
+F 2 "" H 3000 2800 50  0001 C CNN
+F 3 "http://www.ti.com/lit/gpn/sn74ls02" H 3000 2800 50  0001 C CNN
+	1    3000 2800
+	1    0    0    -1  
+$EndComp
+$Comp
+L 74xx:74LS02 U4
+U 2 1 61453DF1
+P 3900 2800
+AR Path="/6144ED5F/61453DF1" Ref="U4"  Part="2" 
+AR Path="/61489DCD/61453DF1" Ref="U3"  Part="2" 
+F 0 "U4" H 3900 3125 50  0000 C CNN
+F 1 "74LCX02FT" H 3900 3034 50  0000 C CNN
+F 2 "" H 3900 2800 50  0001 C CNN
+F 3 "http://www.ti.com/lit/gpn/sn74ls02" H 3900 2800 50  0001 C CNN
+	2    3900 2800
+	1    0    0    -1  
+$EndComp
+$Comp
+L 74xx:74LS02 U4
+U 3 1 6145530B
+P 4700 2800
+AR Path="/6144ED5F/6145530B" Ref="U4"  Part="3" 
+AR Path="/61489DCD/6145530B" Ref="U3"  Part="3" 
+F 0 "U4" H 4700 3125 50  0000 C CNN
+F 1 "74LCX02FT" H 4700 3034 50  0000 C CNN
+F 2 "" H 4700 2800 50  0001 C CNN
+F 3 "http://www.ti.com/lit/gpn/sn74ls02" H 4700 2800 50  0001 C CNN
+	3    4700 2800
+	1    0    0    -1  
+$EndComp
+$Comp
+L 74xx:74LS02 U4
+U 4 1 61456D27
+P 3700 4400
+AR Path="/6144ED5F/61456D27" Ref="U4"  Part="4" 
+AR Path="/61489DCD/61456D27" Ref="U3"  Part="4" 
+F 0 "U4" H 3700 4725 50  0000 C CNN
+F 1 "74LCX02FT" H 3700 4634 50  0000 C CNN
+F 2 "" H 3700 4400 50  0001 C CNN
+F 3 "http://www.ti.com/lit/gpn/sn74ls02" H 3700 4400 50  0001 C CNN
+	4    3700 4400
+	1    0    0    -1  
+$EndComp
+$Comp
+L 74xx:74LS02 U4
+U 5 1 6145A617
+P 4600 4400
+AR Path="/6144ED5F/6145A617" Ref="U4"  Part="5" 
+AR Path="/61489DCD/6145A617" Ref="U3"  Part="5" 
+F 0 "U4" H 4830 4446 50  0000 L CNN
+F 1 "74LCX02FT" H 4830 4355 50  0000 L CNN
+F 2 "" H 4600 4400 50  0001 C CNN
+F 3 "http://www.ti.com/lit/gpn/sn74ls02" H 4600 4400 50  0001 C CNN
+	5    4600 4400
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2700 2700 2600 2700
+Wire Wire Line
+	2600 2700 2600 2800
+Wire Wire Line
+	2600 2800 2450 2800
+Wire Wire Line
+	2450 2800 2450 3150
+Wire Wire Line
+	2450 3150 5150 3150
+Wire Wire Line
+	5150 3150 5150 2800
+Wire Wire Line
+	5150 2800 5000 2800
+Wire Wire Line
+	2700 2900 2600 2900
+Wire Wire Line
+	2600 2900 2600 2800
+Connection ~ 2600 2800
+Wire Wire Line
+	3600 2700 3500 2700
+Wire Wire Line
+	3500 2700 3500 2800
+Wire Wire Line
+	3500 2800 3300 2800
+Wire Wire Line
+	3600 2900 3500 2900
+Wire Wire Line
+	3500 2900 3500 2800
+Connection ~ 3500 2800
+Wire Wire Line
+	4500 2700 4400 2700
+Wire Wire Line
+	4400 2700 4400 2800
+Wire Wire Line
+	4400 2800 4200 2800
+Wire Wire Line
+	4500 2900 4400 2900
+Wire Wire Line
+	4400 2900 4400 2800
+Connection ~ 4400 2800
+$Comp
+L power:GND #PWR0120
+U 1 1 6147B6AA
+P 4600 5100
+AR Path="/6144ED5F/6147B6AA" Ref="#PWR0120"  Part="1" 
+AR Path="/61489DCD/6147B6AA" Ref="#PWR0117"  Part="1" 
+F 0 "#PWR0120" H 4600 4850 50  0001 C CNN
+F 1 "GND" H 4605 4927 50  0000 C CNN
+F 2 "" H 4600 5100 50  0001 C CNN
+F 3 "" H 4600 5100 50  0001 C CNN
+	1    4600 5100
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4600 4900 4600 5100
+Text HLabel 4600 3700 1    50   Input ~ 0
+V3.3_IN
+Wire Wire Line
+	4600 3700 4600 3900
+Wire Wire Line
+	3400 4300 3300 4300
+Wire Wire Line
+	3300 4300 3300 4400
+Wire Wire Line
+	3300 4400 3100 4400
+Wire Wire Line
+	3400 4500 3300 4500
+Wire Wire Line
+	3300 4500 3300 4400
+Connection ~ 3300 4400
+Wire Wire Line
+	3100 4400 3100 4600
+Wire Wire Line
+	4000 4400 4100 4400
+Wire Wire Line
+	4100 4400 4100 4600
+$Comp
+L power:GND #PWR0121
+U 1 1 61481B47
+P 3100 4600
+AR Path="/6144ED5F/61481B47" Ref="#PWR0121"  Part="1" 
+AR Path="/61489DCD/61481B47" Ref="#PWR0118"  Part="1" 
+F 0 "#PWR0121" H 3100 4350 50  0001 C CNN
+F 1 "GND" H 3105 4427 50  0000 C CNN
+F 2 "" H 3100 4600 50  0001 C CNN
+F 3 "" H 3100 4600 50  0001 C CNN
+	1    3100 4600
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0122
+U 1 1 61481F9E
+P 4100 4600
+AR Path="/6144ED5F/61481F9E" Ref="#PWR0122"  Part="1" 
+AR Path="/61489DCD/61481F9E" Ref="#PWR0119"  Part="1" 
+F 0 "#PWR0122" H 4100 4350 50  0001 C CNN
+F 1 "GND" H 4105 4427 50  0000 C CNN
+F 2 "" H 4100 4600 50  0001 C CNN
+F 3 "" H 4100 4600 50  0001 C CNN
+	1    4100 4600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5150 2800 5150 2550
+Connection ~ 5150 2800
+Text HLabel 5150 2550 1    50   Input ~ 0
+OUT
+$EndSCHEMATC

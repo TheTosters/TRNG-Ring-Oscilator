@@ -1,0 +1,75 @@
+
+================================================================================================
+SWEEP RESULT
+================================================================================================
+visit order (to decorrelate warm-up drift): 4, 6, 5, 9, 1, 0, 8, 7, 2, 3
+estimator ceiling at this sample count: 0.8737 bit/bit per channel, 6.9893 summed
+
+    f_s    sum H   %ceil       H/s   m      out  margin  worst|r|     lost  valid
+  [kHz]  [b/smp]          [kbit/s]       [kB/s]                   [% strm]
+------------------------------------------------------------------------------------------------
+     50   6.6085   94.6%     330.4   3     16.7   2.48x   0.10024    0.000    yes
+    100   5.1011   73.0%     510.1   4     25.0   2.55x   0.10068    0.000    yes
+    150   4.1218   59.0%     618.3   4     37.5   2.06x   0.10046    0.000    yes
+    200   3.0827   44.1%     616.5   6     33.3   2.31x   0.09929    0.000    yes
+    250   3.2332   46.3%     808.3   5     50.0   2.02x   0.09871    0.000    yes
+    300   3.1215   44.7%     936.5   6     50.0   2.34x   0.09946    0.004    yes
+    350   2.6662   38.1%     933.2   7     50.0   2.33x   0.10057    0.645     NO
+    400   2.9935   42.8%    1197.4   6     66.7   2.25x   0.09950    2.696     NO
+    500   3.2448   46.4%    1622.4   5    100.0   2.03x   0.10074    3.049     NO
+    600   4.0314   57.7%    2418.8   4    150.0   2.02x   0.09943   14.394     NO
+------------------------------------------------------------------------------------------------
+sum H  = summed per-channel SP 800-90B min-entropy, the conservative budget
+m      = compression needed for the 2x margin; >9 exceeds the firmware max
+out    = output rate at that compression;  margin = what it actually delivers
+lost   = share of the stream the firmware discarded (DROP usb x 160 B +
+         DROP col x 32 B); over 0.05% the row is not usable
+
+READ THE 'lost' COLUMN BEFORE ANYTHING ELSE. Gaps in the stream decorrelate
+consecutive samples, so the estimators see less structure and sum H comes out
+TOO HIGH - not merely unreliable, but inflated in a known direction, roughly
+in proportion to what was lost. A high rate with heavy drops can therefore
+look as good as a rate several times lower. Those rows are excluded below.
+
+RECOMMENDED OPERATING POINT: 300 kHz (table index 5, command '!t5')
+    budget      3.1215 bit per 8-bit sample (936.5 kbit/s)
+    compression 6:1 for the 2x margin  -> command '!6'
+    output      50.0 kB/s
+    versus 100 kHz: 2.00x the output (25.0 kB/s at 4:1)
+
+    robustness: 6:1 holds the 2x margin as long as sum H stays above 2.6667;
+    measured 3.1215, so there is 14.6% of headroom before 7:1 would be required
+
+    within 2% of the same output, ranked by margin:
+         250 kHz at 5:1  -> 50.0 kB/s, margin 2.02x, headroom 1.0%
+
+JITTER ACCUMULATION
+    (over the 6 rates without drops; the rest report inflated sum H)
+    from 50 to 300 kHz (6x the rate) the budget per sample changes by -52.8%
+    (6.6085 -> 3.1215 bit per sample)
+    A steep decline - jitter no longer has time to accumulate. The
+    optimum is near the knee and going higher costs more quality
+    than it buys throughput.
+
+PAIR COUPLING VERSUS RATE (open question: crosstalk at the latch edge,
+or the rings pulling each other's phase?)
+     f_s [kHz]       B-C       E-F       G-H
+            50   +0.0954   +0.1002   +0.0713
+           100   +0.0955   +0.1007   +0.0719
+           150   +0.0945   +0.1005   +0.0713
+           200   +0.0950   +0.0993   +0.0719
+           250   +0.0943   +0.0987   +0.0717
+           300   +0.0952   +0.0995   +0.0710
+           350   +0.0961   +0.1006   +0.0721
+           400   +0.0947   +0.0995   +0.0713
+           500   +0.0966   +0.1007   +0.0718
+           600   +0.0952   +0.0994   +0.0711
+    spread across rates: B-C=0.0023  E-F=0.0020  G-H=0.0011   (typical |r| = 0.0889)
+    Flat within 20% of its own size: the coupling does not follow the
+    sampling rate, which fits crosstalk at the instant of latching and
+    argues against the rings pulling each other's phase.
+
+Caveat: the budget is the sum of per-channel estimates, which assumes
+independence. Coupling costs 0.4% of it and was measured not to reduce
+joint entropy, so the sum stands - but it is an assumption, not a
+measurement, and these figures are one board at room temperature.

@@ -1,0 +1,3 @@
+../Core/Src/sender.c:13:13:startTransmition	2
+../Core/Src/sender.c:23:22:updateSender	4
+../Core/Src/sender.c:36:6:sendEntropyToHost	2

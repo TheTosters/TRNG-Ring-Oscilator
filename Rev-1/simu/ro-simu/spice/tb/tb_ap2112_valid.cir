@@ -1,0 +1,162 @@
+* tb_ap2112_valid.cir -- walidacja modelu AP2112K-3.3 wzgledem karty katalogowej
+* Sprawdza: VOUT, IQ, regulacje obciazenia, dropout, ILIM, PSRR(f),
+*           Zout(f), odpowiedz na skok obciazenia, start od EN.
+
+.include ../models/AP2112K.lib
+
+* ------- (A) sekcja DC/AC: 5 V -> 3.3 V, Cout = 1 uF, obciazenie 5 mA -------
+Vin   vin  0 DC 5 AC 1
+Ven   en   0 DC 5
+Xu1   vin 0 en nc1 vo1 AP2112K_33
+Cout1 vo1 0 1u
+Resr1 vo1 0 1g
+Iload vo1 0 DC 5m
+* sonda do pomiaru Zout: zrodlo pradowe AC wstrzykiwane w wyjscie
+Iz    0   vo1 AC 1
+
+.control
+set noaskquit
+set nobreak
+echo ""
+echo "=============================================================="
+echo " AP2112K-3.3 -- walidacja modelu wzgledem karty katalogowej"
+echo "=============================================================="
+
+* ---------------- punkt pracy, IQ ----------------
+op
+echo ""
+echo "--- Punkt pracy (VIN=5V, ILOAD=5mA) ---"
+print v(vo1)
+echo "  kat.: 3.300 V +/-2%  (3.234 .. 3.366 V)"
+let iin = -i(Vin)
+print iin
+echo ""
+
+* ---------------- regulacja obciazenia 10 mA .. 300 mA ----------------
+* (jeden sweep DC, bo `let` nie przezywa przejscia do nowego plotu)
+echo "--- Regulacja obciazenia (10 mA -> 300 mA, VIN=5V) ---"
+dc Iload 10m 300m 1m
+meas dc v_10ma  find v(vo1) at=10m
+meas dc v_300ma find v(vo1) at=300m
+let dload_pct = 100*(v_10ma-v_300ma)/v_10ma
+let zout_dc_mohm = 1000*(v_10ma-v_300ma)/0.29
+print dload_pct zout_dc_mohm
+echo "  kat.: regulacja obciazenia 0.2 % (typ) -> Zout(DC) = 23 mOhm"
+echo ""
+
+* ---------------- regulacja wejsciowa 3.6 V .. 5.5 V ----------------
+echo "--- Regulacja wejsciowa (VIN 3.6 V -> 5.5 V, ILOAD=30mA) ---"
+alter @Iload[dc] = 30m
+dc Vin 3.5 5.6 0.01
+meas dc v_36 find v(vo1) at=3.7
+meas dc v_55 find v(vo1) at=5.4
+let dline_pct = 100*(v_55-v_36)/v_36
+print dline_pct
+echo "  kat.: regulacja wejsciowa 0.2 % (typ)"
+echo ""
+
+* ---------------- dropout przy 600 mA ----------------
+echo "--- Dropout @ ILOAD = 600 mA ---"
+alter @Iload[dc] = 600m
+* szukamy VIN przy ktorym VOUT = 98% z 3.3 V = 3.234 V (definicja z karty, Note 3)
+dc Vin 3.3 4.2 0.005
+let vtarget = 3.3*0.98
+meas dc vin_at_98 when v(vo1)=vtarget
+let vdrop = vin_at_98 - 3.3
+print vdrop
+echo "  kat.: VDROP = 0.32 V @ ILOAD=600mA, VOUT>=3.3V (Note 3: VOUT = 98% nom.)"
+echo ""
+
+* ---------------- ograniczenie pradowe ----------------
+echo "--- Ograniczenie pradowe (VOUT zwarte przez male R) ---"
+alter @Iload[dc] = 0
+alter @Vin[dc] = 5
+alter @Resr1[resistance] = 0.05
+op
+let ilim_meas = v(vo1)/0.05
+print ilim_meas
+echo "  kat.: ILIM = 1100 mA typ (min 601 mA)"
+alter @Resr1[resistance] = 1g
+echo ""
+
+* ---------------- PSRR(f) ----------------
+echo "--- PSRR (VIN=5V, ILOAD=5mA, Cout=1uF) ---"
+alter @Iload[dc] = 5m
+alter @Iz[acmag] = 0
+op
+ac dec 20 10 100meg
+let psrr_db = -db(v(vo1))
+meas ac psrr_100  find psrr_db at=100
+meas ac psrr_1k   find psrr_db at=1k
+meas ac psrr_10k  find psrr_db at=10k
+meas ac psrr_100k find psrr_db at=100k
+meas ac psrr_1m   find psrr_db at=1meg
+meas ac psrr_10m  find psrr_db at=10meg
+echo "  kat.: 80 dB @ 100 Hz, 75 dB @ 1 kHz (tabela; warunki VOUT=1.2V VIN=2V 5mA)"
+echo "  kat. wykres: ~78 dB @1k, ~58 @10k, ~38 @100k, ~18 @1M"
+set wr_singlescale
+set wr_vecnames
+wrdata ../out/ap2112_psrr.dat psrr_db
+echo ""
+
+* ---------------- Zout(f) : impedancja wyjsciowa LDO ----------------
+echo "--- Zout(f) LDO + Cout 1uF (wstrzykniecie pradu 1 A AC) ---"
+alter @Vin[acmag] = 0
+alter @Iz[acmag] = 1
+ac dec 20 10 100meg
+let zout = abs(v(vo1))
+meas ac z_dc   find zout at=10
+meas ac z_1k   find zout at=1k
+meas ac z_10k  find zout at=10k
+meas ac z_100k find zout at=100k
+meas ac z_1m   find zout at=1meg
+meas ac z_10m  find zout at=10meg
+meas ac z_100m find zout at=99meg
+echo "  Zout(DC) oczekiwane ~23 mOhm (z regulacji obciazenia 0.2%)"
+echo "  powyzej ~260 kHz o Zout decyduje juz tylko Cout, nie petla LDO"
+wrdata ../out/ap2112_zout.dat zout
+alter @Vin[acmag] = 1
+alter @Iz[acmag] = 0
+echo ""
+
+* ---------------- skok obciazenia 1 mA -> 300 mA ----------------
+echo "--- Skok obciazenia 1 mA -> 300 mA -> 1 mA (Cout=1uF) ---"
+alter @Iload[dc] = 0
+* pulsujace obciazenie realizowane przez oddzielne zrodlo dodane w locie
+* (Iload ustawione na 0; uzywamy Ipulse zdefiniowanego ponizej w netliscie)
+tran 200n 1.2m 0 200n
+meas tran vmin  min v(vo1) from=0.2m to=0.6m
+meas tran vmax  max v(vo1) from=0.6m to=1.0m
+let dip_mv  = 1000*(3.3-vmin)
+let over_mv = 1000*(vmax-3.3)
+print dip_mv over_mv
+echo "  kat. oscylogram 'Load Transient Response I' (VIN=5V VOUT=3.3V,"
+echo "  1mA<->300mA, 100 mV/dz): zapad rzedu kilkudziesieciu mV"
+wrdata ../out/ap2112_ldstep.dat v(vo1)
+echo ""
+
+* ---------------- start i wylaczenie przez EN ----------------
+* mierzone na osobnej instancji Xu2 z impulsem na EN (patrz netlista nizej)
+echo "--- Wlaczenie / wylaczenie przez EN ---"
+tran 1u 900u 0 1u
+meas tran t_on  when v(vo2)=3.135 rise=1
+meas tran vo2_end find v(vo2) at=890u
+print t_on
+echo "  t_on = czas od zbocza EN (100 us) do osiagniecia 95% z 3.3 V"
+echo "  kat. oscylogram 'VOUT Turn On/Off by EN' (20 us/dz): narastanie"
+echo "  rzedu kilkudziesieciu us; opadanie przez rezystor 80 Ohm"
+wrdata ../out/ap2112_en.dat v(en2) v(vo2)
+echo ""
+.endc
+
+* pulsujace obciazenie do testu skoku (aktywne tylko w oknie 0.3..0.7 ms)
+Ipulse vo1 0 PULSE(1m 300m 0.3m 1u 1u 0.4m 1m)
+
+* ------- (B) osobna instancja do testu EN: EN 0->5V @100us, 5->0V @500us ----
+Vin2  vin2 0 DC 5
+Ven2  en2  0 PULSE(0 5 100u 1u 1u 400u 10m)
+Xu2   vin2 0 en2 nc2 vo2 AP2112K_33
+Cout2 vo2 0 1u
+Ild2  vo2 0 DC 5m
+
+.end

@@ -1,0 +1,538 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 4 4
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L Amplifier_Operational:OPA4340UA U?
+U 1 1 61407927
+P 2600 2075
+AR Path="/61407927" Ref="U?"  Part="1" 
+AR Path="/613E3CCC/61407927" Ref="U5"  Part="1" 
+F 0 "U5" H 2600 2442 50  0000 C CNN
+F 1 "OPA4354" H 2600 2351 50  0000 C CNN
+F 2 "" H 2550 2175 50  0001 C CNN
+F 3 "http://www.ti.com/lit/ds/symlink/opa340.pdf" H 2650 2275 50  0001 C CNN
+	1    2600 2075
+	1    0    0    -1  
+$EndComp
+$Comp
+L Amplifier_Operational:OPA4340UA U?
+U 2 1 6140792D
+P 2600 3300
+AR Path="/6140792D" Ref="U?"  Part="2" 
+AR Path="/613E3CCC/6140792D" Ref="U5"  Part="2" 
+F 0 "U5" H 2600 3667 50  0000 C CNN
+F 1 "OPA4354" H 2600 3576 50  0000 C CNN
+F 2 "" H 2550 3400 50  0001 C CNN
+F 3 "http://www.ti.com/lit/ds/symlink/opa340.pdf" H 2650 3500 50  0001 C CNN
+	2    2600 3300
+	1    0    0    -1  
+$EndComp
+$Comp
+L Amplifier_Operational:OPA4340UA U?
+U 3 1 61407933
+P 2600 4425
+AR Path="/61407933" Ref="U?"  Part="3" 
+AR Path="/613E3CCC/61407933" Ref="U5"  Part="3" 
+F 0 "U5" H 2600 4792 50  0000 C CNN
+F 1 "OPA4354" H 2600 4701 50  0000 C CNN
+F 2 "" H 2550 4525 50  0001 C CNN
+F 3 "http://www.ti.com/lit/ds/symlink/opa340.pdf" H 2650 4625 50  0001 C CNN
+	3    2600 4425
+	1    0    0    -1  
+$EndComp
+$Comp
+L Amplifier_Operational:OPA4340UA U?
+U 4 1 61407939
+P 6550 3400
+AR Path="/61407939" Ref="U?"  Part="4" 
+AR Path="/613E3CCC/61407939" Ref="U5"  Part="4" 
+F 0 "U5" H 6550 3767 50  0000 C CNN
+F 1 "OPA4354" H 6550 3676 50  0000 C CNN
+F 2 "" H 6500 3500 50  0001 C CNN
+F 3 "http://www.ti.com/lit/ds/symlink/opa340.pdf" H 6600 3600 50  0001 C CNN
+	4    6550 3400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R1
+U 1 1 6140793F
+P 1775 1375
+F 0 "R1" H 1845 1421 50  0000 L CNN
+F 1 "10k" H 1845 1330 50  0000 L CNN
+F 2 "" V 1705 1375 50  0001 C CNN
+F 3 "~" H 1775 1375 50  0001 C CNN
+	1    1775 1375
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1550 1200 1550 1225
+Wire Wire Line
+	1550 1225 1775 1225
+Wire Wire Line
+	1775 2175 2300 2175
+Wire Wire Line
+	2900 2075 3025 2075
+$Comp
+L Device:R R?
+U 1 1 6140794F
+P 2325 1650
+AR Path="/6140794F" Ref="R?"  Part="1" 
+AR Path="/613E3CCC/6140794F" Ref="R5"  Part="1" 
+F 0 "R5" V 2118 1650 50  0000 C CNN
+F 1 "8k" V 2209 1650 50  0000 C CNN
+F 2 "" V 2255 1650 50  0001 C CNN
+F 3 "~" H 2325 1650 50  0001 C CNN
+	1    2325 1650
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	1775 1525 1775 1650
+Wire Wire Line
+	2175 1650 1775 1650
+Connection ~ 1775 1650
+Wire Wire Line
+	1775 1650 1775 2175
+Wire Wire Line
+	2475 1650 3025 1650
+Wire Wire Line
+	3025 1650 3025 2075
+Connection ~ 3025 2075
+$Comp
+L Device:R R10
+U 1 1 6140795C
+P 8425 3400
+F 0 "R10" V 8218 3400 50  0000 C CNN
+F 1 "120" V 8309 3400 50  0000 C CNN
+F 2 "" V 8355 3400 50  0001 C CNN
+F 3 "~" H 8425 3400 50  0001 C CNN
+	1    8425 3400
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	8575 3400 8650 3400
+$Comp
+L Device:C C13
+U 1 1 61407964
+P 8650 3775
+F 0 "C13" H 8765 3821 50  0000 L CNN
+F 1 "100p" H 8765 3730 50  0000 L CNN
+F 2 "" H 8688 3625 50  0001 C CNN
+F 3 "~" H 8650 3775 50  0001 C CNN
+	1    8650 3775
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8650 3625 8650 3400
+$Comp
+L power:GND #PWR0123
+U 1 1 6140796B
+P 8650 3975
+F 0 "#PWR0123" H 8650 3725 50  0001 C CNN
+F 1 "GND" H 8655 3802 50  0000 C CNN
+F 2 "" H 8650 3975 50  0001 C CNN
+F 3 "" H 8650 3975 50  0001 C CNN
+	1    8650 3975
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8650 3975 8650 3925
+$Comp
+L Device:R R?
+U 1 1 61407972
+P 1775 2925
+AR Path="/61407972" Ref="R?"  Part="1" 
+AR Path="/613E3CCC/61407972" Ref="R2"  Part="1" 
+F 0 "R2" H 1845 2971 50  0000 L CNN
+F 1 "10k" H 1845 2880 50  0000 L CNN
+F 2 "" V 1705 2925 50  0001 C CNN
+F 3 "~" H 1775 2925 50  0001 C CNN
+	1    1775 2925
+	-1   0    0    1   
+$EndComp
+$Comp
+L Device:R R?
+U 1 1 61407978
+P 1775 3625
+AR Path="/61407978" Ref="R?"  Part="1" 
+AR Path="/613E3CCC/61407978" Ref="R3"  Part="1" 
+F 0 "R3" H 1845 3671 50  0000 L CNN
+F 1 "10k" H 1845 3580 50  0000 L CNN
+F 2 "" V 1705 3625 50  0001 C CNN
+F 3 "~" H 1775 3625 50  0001 C CNN
+	1    1775 3625
+	-1   0    0    1   
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 6140797E
+P 1775 3875
+AR Path="/6140797E" Ref="#PWR?"  Part="1" 
+AR Path="/613E3CCC/6140797E" Ref="#PWR0124"  Part="1" 
+F 0 "#PWR0124" H 1775 3625 50  0001 C CNN
+F 1 "GND" H 1780 3702 50  0000 C CNN
+F 2 "" H 1775 3875 50  0001 C CNN
+F 3 "" H 1775 3875 50  0001 C CNN
+	1    1775 3875
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7875 2900 7875 3200
+$Comp
+L power:GND #PWR0125
+U 1 1 6140798C
+P 2200 5300
+F 0 "#PWR0125" H 2200 5050 50  0001 C CNN
+F 1 "GND" H 2205 5127 50  0000 C CNN
+F 2 "" H 2200 5300 50  0001 C CNN
+F 3 "" H 2200 5300 50  0001 C CNN
+	1    2200 5300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2200 5300 2200 5175
+Wire Wire Line
+	2200 4525 2300 4525
+Wire Wire Line
+	2200 4525 2200 4800
+Wire Wire Line
+	2475 4800 2200 4800
+Connection ~ 2200 4800
+Wire Wire Line
+	2200 4800 2200 4875
+Wire Wire Line
+	2775 4800 3000 4800
+Wire Wire Line
+	3000 4800 3000 4425
+Wire Wire Line
+	2900 4425 3000 4425
+Connection ~ 3000 4425
+$Comp
+L Device:C C12
+U 1 1 6140799C
+P 5775 3450
+F 0 "C12" H 5890 3496 50  0000 L CNN
+F 1 "100p" H 5890 3405 50  0000 L CNN
+F 2 "" H 5813 3300 50  0001 C CNN
+F 3 "~" H 5775 3450 50  0001 C CNN
+	1    5775 3450
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 614079A2
+P 5775 3650
+AR Path="/614079A2" Ref="#PWR?"  Part="1" 
+AR Path="/613E3CCC/614079A2" Ref="#PWR0126"  Part="1" 
+F 0 "#PWR0126" H 5775 3400 50  0001 C CNN
+F 1 "GND" H 5780 3477 50  0000 C CNN
+F 2 "" H 5775 3650 50  0001 C CNN
+F 3 "" H 5775 3650 50  0001 C CNN
+	1    5775 3650
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5775 3650 5775 3600
+$Comp
+L Device:R R4
+U 1 1 614079A9
+P 2200 5025
+F 0 "R4" H 2270 5071 50  0000 L CNN
+F 1 "10k" H 2270 4980 50  0000 L CNN
+F 2 "" V 2130 5025 50  0001 C CNN
+F 3 "~" H 2200 5025 50  0001 C CNN
+	1    2200 5025
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7575 3400 7200 3400
+Wire Wire Line
+	6200 3500 6250 3500
+Wire Wire Line
+	6200 3750 6950 3750
+Wire Wire Line
+	6950 3750 6950 3400
+Wire Wire Line
+	6950 3400 6850 3400
+Wire Wire Line
+	6200 3750 6200 3500
+$Comp
+L Device:R R9
+U 1 1 614079B5
+P 7200 3625
+F 0 "R9" H 7270 3671 50  0000 L CNN
+F 1 "10k" H 7270 3580 50  0000 L CNN
+F 2 "" V 7130 3625 50  0001 C CNN
+F 3 "~" H 7200 3625 50  0001 C CNN
+	1    7200 3625
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R8
+U 1 1 614079BB
+P 7200 3175
+F 0 "R8" H 7270 3221 50  0000 L CNN
+F 1 "10k" H 7270 3130 50  0000 L CNN
+F 2 "" V 7130 3175 50  0001 C CNN
+F 3 "~" H 7200 3175 50  0001 C CNN
+	1    7200 3175
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6950 3400 7200 3400
+Wire Wire Line
+	7200 3400 7200 3325
+Connection ~ 6950 3400
+Wire Wire Line
+	7200 3400 7200 3475
+Connection ~ 7200 3400
+$Comp
+L power:GND #PWR0127
+U 1 1 614079C6
+P 7200 3875
+F 0 "#PWR0127" H 7200 3625 50  0001 C CNN
+F 1 "GND" H 7205 3702 50  0000 C CNN
+F 2 "" H 7200 3875 50  0001 C CNN
+F 3 "" H 7200 3875 50  0001 C CNN
+	1    7200 3875
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7200 3875 7200 3775
+Wire Wire Line
+	7200 3025 7200 2900
+$Comp
+L Analog_Switch:MAX323CPA U?
+U 2 1 614079D4
+P 7875 3400
+AR Path="/614079D4" Ref="U?"  Part="1" 
+AR Path="/613E3CCC/614079D4" Ref="U6"  Part="2" 
+F 0 "U6" H 7875 3575 50  0000 C CNN
+F 1 "MAX4731EUA+-ND" H 7875 3666 50  0000 C CNN
+F 2 "Package_DIP:DIP-8_W7.62mm" H 7875 3300 50  0001 C CNN
+F 3 "https://datasheets.maximintegrated.com/en/ds/MAX323-MAX325.pdf" H 7875 3400 50  0001 C CNN
+	2    7875 3400
+	-1   0    0    1   
+$EndComp
+$Comp
+L Analog_Switch:MAX323CPA U?
+U 1 1 614079DA
+P 3700 3675
+AR Path="/614079DA" Ref="U?"  Part="2" 
+AR Path="/613E3CCC/614079DA" Ref="U6"  Part="1" 
+F 0 "U6" V 3654 3805 50  0000 L CNN
+F 1 "MAX4731EUA+-ND" V 3745 3805 50  0000 L CNN
+F 2 "Package_DIP:DIP-8_W7.62mm" H 3700 3575 50  0001 C CNN
+F 3 "https://datasheets.maximintegrated.com/en/ds/MAX323-MAX325.pdf" H 3700 3675 50  0001 C CNN
+	1    3700 3675
+	0    1    1    0   
+$EndComp
+$Comp
+L Analog_Switch:MAX323CPA U?
+U 3 1 614079E0
+P 5450 1600
+AR Path="/614079E0" Ref="U?"  Part="3" 
+AR Path="/613E3CCC/614079E0" Ref="U9"  Part="3" 
+F 0 "U9" H 5630 1646 50  0000 L CNN
+F 1 "MAX4733EUA+-ND" H 5630 1555 50  0000 L CNN
+F 2 "Package_DIP:DIP-8_W7.62mm" H 5450 1500 50  0001 C CNN
+F 3 "https://datasheets.maximintegrated.com/en/ds/MAX323-MAX325.pdf" H 5450 1600 50  0001 C CNN
+	3    5450 1600
+	1    0    0    -1  
+$EndComp
+$Comp
+L Analog_Switch:MAX324CPA U?
+U 1 1 614079E6
+P 4825 3300
+AR Path="/614079E6" Ref="U?"  Part="1" 
+AR Path="/613E3CCC/614079E6" Ref="U7"  Part="1" 
+F 0 "U7" V 4779 3430 50  0000 L CNN
+F 1 "MAX4732EUA+-ND" V 4870 3430 50  0000 L CNN
+F 2 "Package_DIP:DIP-8_W7.62mm" H 4825 3200 50  0001 C CNN
+F 3 "https://datasheets.maximintegrated.com/en/ds/MAX323-MAX325.pdf" H 4825 3300 50  0001 C CNN
+	1    4825 3300
+	-1   0    0    1   
+$EndComp
+$Comp
+L Analog_Switch:MAX324CPA U?
+U 3 1 614079F2
+P 4225 1600
+AR Path="/614079F2" Ref="U?"  Part="3" 
+AR Path="/613E3CCC/614079F2" Ref="U8"  Part="3" 
+F 0 "U8" H 4505 1646 50  0000 L CNN
+F 1 "MAX4733EUA+-ND" H 4505 1555 50  0000 L CNN
+F 2 "Package_DIP:DIP-8_W7.62mm" H 4225 1500 50  0001 C CNN
+F 3 "https://datasheets.maximintegrated.com/en/ds/MAX323-MAX325.pdf" H 4225 1600 50  0001 C CNN
+	3    4225 1600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1775 2700 1775 2775
+Wire Wire Line
+	1775 3775 1775 3875
+Connection ~ 1775 3400
+Wire Wire Line
+	1775 3400 1775 3475
+Wire Wire Line
+	1775 3400 2300 3400
+Wire Wire Line
+	1775 3075 1775 3400
+Connection ~ 8650 3400
+Text Label 8950 3400 2    50   ~ 0
+VF_A
+Wire Wire Line
+	8650 3400 8950 3400
+Wire Wire Line
+	2300 3200 1975 3200
+Text Label 1975 3200 0    50   ~ 0
+VF_A
+Wire Wire Line
+	2300 1975 1975 1975
+Text Label 1975 1975 0    50   ~ 0
+VF_A
+Wire Wire Line
+	2300 4325 1975 4325
+Text Label 1975 4325 0    50   ~ 0
+VF_A
+$Comp
+L Device:R R?
+U 1 1 61407A07
+P 2625 4800
+AR Path="/61407A07" Ref="R?"  Part="1" 
+AR Path="/613E3CCC/61407A07" Ref="R6"  Part="1" 
+F 0 "R6" V 2418 4800 50  0000 C CNN
+F 1 "8k" V 2509 4800 50  0000 C CNN
+F 2 "" V 2555 4800 50  0001 C CNN
+F 3 "~" H 2625 4800 50  0001 C CNN
+	1    2625 4800
+	0    1    1    0   
+$EndComp
+Text Label 3550 4425 2    50   ~ 0
+LOWER_OUT
+Text Label 3550 2075 2    50   ~ 0
+UPPER_OUT
+$Comp
+L Device:R R?
+U 1 1 61407A10
+P 5425 3300
+AR Path="/61407A10" Ref="R?"  Part="1" 
+AR Path="/613E3CCC/61407A10" Ref="R7"  Part="1" 
+F 0 "R7" V 5218 3300 50  0000 C CNN
+F 1 "120" V 5309 3300 50  0000 C CNN
+F 2 "" V 5355 3300 50  0001 C CNN
+F 3 "~" H 5425 3300 50  0001 C CNN
+	1    5425 3300
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	5775 3300 5575 3300
+Connection ~ 5775 3300
+Wire Wire Line
+	5775 3300 6250 3300
+Wire Wire Line
+	4525 3300 3700 3300
+Wire Wire Line
+	3500 2925 3500 3300
+Wire Wire Line
+	2900 3300 3150 3300
+Connection ~ 3500 3300
+Wire Wire Line
+	3500 3300 3500 3675
+Wire Wire Line
+	3700 3225 3700 3300
+Wire Wire Line
+	3700 4425 3700 3975
+Wire Wire Line
+	3000 4425 3700 4425
+Wire Wire Line
+	3700 2075 3700 2625
+Wire Wire Line
+	3025 2075 3700 2075
+Connection ~ 3700 3300
+Wire Wire Line
+	3700 3300 3700 3375
+Wire Wire Line
+	5125 3300 5275 3300
+Wire Wire Line
+	4825 2800 4825 3100
+$Comp
+L power:GND #PWR?
+U 1 1 61407A28
+P 4950 2250
+AR Path="/61407A28" Ref="#PWR?"  Part="1" 
+AR Path="/613E3CCC/61407A28" Ref="#PWR0128"  Part="1" 
+F 0 "#PWR0128" H 4950 2000 50  0001 C CNN
+F 1 "GND" H 4955 2077 50  0000 C CNN
+F 2 "" H 4950 2250 50  0001 C CNN
+F 3 "" H 4950 2250 50  0001 C CNN
+	1    4950 2250
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4225 1100 4225 1025
+Wire Wire Line
+	4225 1025 4900 1025
+Wire Wire Line
+	5450 1025 5450 1100
+Wire Wire Line
+	4225 2100 4225 2150
+Wire Wire Line
+	4225 2150 4950 2150
+Wire Wire Line
+	4950 2150 4950 2250
+Wire Wire Line
+	4950 2150 5450 2150
+Wire Wire Line
+	5450 2150 5450 2100
+Connection ~ 4950 2150
+Wire Wire Line
+	4900 950  4900 1025
+Connection ~ 4900 1025
+Wire Wire Line
+	4900 1025 5450 1025
+Wire Wire Line
+	3150 3300 3150 3050
+Connection ~ 3150 3300
+Wire Wire Line
+	3150 3300 3500 3300
+Text HLabel 7875 2900 1    50   Input ~ 0
+VG1
+Text HLabel 4825 2800 1    50   Input ~ 0
+VG1
+Text HLabel 3150 3050 1    50   Input ~ 0
+OUT
+Text HLabel 1550 1200 1    50   Input ~ 0
+3.3V_IN
+Text HLabel 4900 950  1    50   Input ~ 0
+3.3V_IN
+Text HLabel 7200 2900 1    50   Input ~ 0
+VSS_IN
+Text HLabel 1775 2700 1    50   Input ~ 0
+3.3V_IN
+Wire Wire Line
+	8175 3400 8275 3400
+$Comp
+L Analog_Switch:MAX324CPA U?
+U 2 1 614079EC
+P 3700 2925
+AR Path="/614079EC" Ref="U?"  Part="2" 
+AR Path="/613E3CCC/614079EC" Ref="U7"  Part="2" 
+F 0 "U7" H 3700 3100 50  0000 C CNN
+F 1 "MAX4732EUA+-ND" H 3700 3191 50  0000 C CNN
+F 2 "Package_DIP:DIP-8_W7.62mm" H 3700 2825 50  0001 C CNN
+F 3 "https://datasheets.maximintegrated.com/en/ds/MAX323-MAX325.pdf" H 3700 2925 50  0001 C CNN
+	2    3700 2925
+	0    1    1    0   
+$EndComp
+$EndSCHEMATC

@@ -3,8 +3,12 @@
 Orientation document: what this project is, how the quality of its randomness source was
 measured, and what those measurements imply for the default configuration. The figures come
 from **`ea_non_iid`** of the NIST SP 800-90B *EntropyAssessment* suite, driven by
-[`host_tools/collect_all.sh`](../../host_tools/collect_all.sh), plus a cross-channel coupling
-analysis from [`host_tools/channel_crosstalk.py`](../../host_tools/channel_crosstalk.py).
+[`host_tools/collect_all_rev1.sh`](../../host_tools/collect_all_rev1.sh), plus a cross-channel coupling
+analysis from [`host_tools/channel_crosstalk_rev1.py`](../../host_tools/channel_crosstalk_rev1.py).
+
+The host tools are split per board revision: `*_rev1.*` targets this board (6 rings, one
+latch), `*_rev2.*` the Rev-2 board (8 rings, two latches). `usb_read.py`, `console.py`,
+`unpack_stream.py` and `unpack_single_channel.py` are shared by both.
 
 **The authoritative results are `results_*kHz_lsb.txt`** (LSB-first unpacking, matching how
 the firmware packs bits). The `results_*kHz.txt` files are a first, **defective** series —
@@ -62,7 +66,7 @@ SHA — that is the mode used to collect all the data assessed below.
 
 ## 3. Measurement methodology
 
-`collect_all.sh` captures **1 MiB** of RAW data per channel in isolation (one channel
+`collect_all_rev1.sh` captures **1 MiB** of RAW data per channel in isolation (one channel
 enabled, the rest disabled) plus one combined capture with all six enabled. It then unpacks
 the stream into a one-sample-per-byte format and runs `ea_non_iid`:
 
@@ -152,7 +156,7 @@ demonstrated rather than assumed. This needs **simultaneous** samples, which onl
 `channelA-F.bin` has — all six latched by one pulse. The per-channel captures were taken at
 different times and cannot be cross-correlated.
 
-Measured with `channel_crosstalk.py` at 100 kHz, N = 1 398 101, noise floor 1σ = 0.00085.
+Measured with `channel_crosstalk_rev1.py` at 100 kHz, N = 1 398 101, noise floor 1σ = 0.00085.
 
 Bias (fraction of ones): A=0.5137 B=0.5087 C=0.5109 D=0.5022 E=0.5102 F=0.5149
 
@@ -289,9 +293,11 @@ before anyone treats this as a formal assessment.
 
 1. ~~**Bit order mismatch.**~~ **Resolved.** The firmware packs LSB-first; the first test
    series unpacked MSB-first, inflating results by 8–20% (channels) and 20–33% (combined).
-   `collect_all.sh` now passes `--bit-order little`, and the figures in this document come
-   from the corrected `results_*kHz_lsb.txt` series. **Still to fix: `BIT_ORDER = "big"` in
-   `check_streams_corelation.py`**, which remains inconsistent with the firmware.
+   `collect_all_rev1.sh` now passes `--bit-order little`, and the figures in this document come
+   from the corrected `results_*kHz_lsb.txt` series. `BIT_ORDER` in
+   `check_streams_corelation_rev1.py` was also `"big"` and is now `"little"`; that tool feeds
+   no number in this document (section 6 comes from `channel_crosstalk_rev1.py`, which was
+   always LSB-first), so nothing quoted here changes.
 2. ~~**Channel independence unverified.**~~ **Measured, see section 6.** Five channel pairs
    are statistically coupled, but the total cost is 0.13% of the budget, so summing the six
    per-channel estimates stands. What remains open is confirming the *cause* — whether the
@@ -339,14 +345,15 @@ What it can be used for as it stands:
   one specimen (caveats 5, 6, 7)
 
 Next steps that would most improve the credibility of this assessment, in order: confirm the
-ring-to-package mapping and act on it in Rev-2 (section 6), fix `BIT_ORDER` in
-`check_streams_corelation.py` (caveat 1), add SP 800-90B restart tests, and characterise the
-source over temperature and supply voltage.
+ring-to-package mapping and act on it in Rev-2 (section 6 — Rev-2 now gives every ring its own
+inverter package, and `channel_crosstalk_rev2.py` reports the coupling split by group so the
+hypothesis can be tested directly), add SP 800-90B restart tests, and characterise the source
+over temperature and supply voltage.
 
 ---
 
 *Source data: `results_60kHz_lsb.txt` … `results_100kHz_lsb.txt` in this directory
 (authoritative series); `results_*kHz.txt` is the defective MSB-first series.
-Collection script: `host_tools/collect_all.sh`. Coupling analysis:
-`host_tools/channel_crosstalk.py`. Tool: NIST SP 800-90B EntropyAssessment `ea_non_iid`.
+Collection script: `host_tools/collect_all_rev1.sh`. Coupling analysis:
+`host_tools/channel_crosstalk_rev1.py`. Tool: NIST SP 800-90B EntropyAssessment `ea_non_iid`.
 Firmware timing budget analysis: `../firmware/analiza.md`.*

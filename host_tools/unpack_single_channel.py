@@ -7,14 +7,17 @@ output bytes, each holding one sample value in 0..2**bits-1.
 
   * ``--bits 1`` (default): one channel's raw bits, output is 0x00/0x01,
     8x the input size.
-  * ``--bits 6``: six interleaved channels sampled together (A-F), output is
-    0x00..0x3f, 8/6 of the input size.
+  * ``--bits 6``: six interleaved channels sampled together (A-F, Rev-1),
+    output is 0x00..0x3f, 8/6 of the input size.
+  * ``--bits 8``: eight interleaved channels sampled together (A-H, Rev-2),
+    output is 0x00..0xff, same size as the input - one sample per byte already,
+    so for this width the two ``--bit-order`` settings agree.
 
 Bit order within each byte:
 
   * ``big`` (MSB-first, default): bit 7 is consumed first, bit 0 last, and the
     first bit of a sample is its MSB. This matches
-    ``check_streams_corelation.py`` / ``unpack_stream.py``.
+    ``check_streams_corelation_rev1.py`` / ``unpack_stream.py``.
   * ``little`` (LSB-first): bit 0 is consumed first, and the first bit of a
     sample is its LSB.
 
@@ -28,6 +31,9 @@ Example::
 
     python unpack_single_channel.py channelA-F.bin outputA-F.bin --bits 6
     ea_non_iid -i outputA-F.bin -v 6
+
+    python unpack_single_channel.py channelA-H.bin outputA-H.bin --bits 8
+    ea_non_iid -i outputA-H.bin -v 8
 """
 
 import argparse

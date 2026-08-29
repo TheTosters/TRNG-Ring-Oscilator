@@ -1,0 +1,113 @@
+* tb_ro_cload.cir -- ile pojemnosci wezla trzeba, zeby ring zwolnil?
+*
+* Pomiar na oscyloskopie dal ~50 MHz, symulacja przy pojemnosci sciezek 1 pF
+* daje 159.5 MHz. Ten testbench sprawdza, czy sama pojemnosc sciezek moze
+* wyjasnic te roznice: 11 kopii ringu, kazda z inna pojemnoscia wezla.
+*
+* Rownolegle mierzy tez opoznienie WEWNETRZNE bramki (przy obciazeniu ~0),
+* czyli dolna granice okresu ringu, ktorej zadne odciazenie nie przebije.
+
+.include ../models/74LVC04A.lib
+
+.subckt RING3 tap vdd gnd params: cl=1p
+X1  n3 n1 vdd gnd 74LVC04A_NEX
+X2  n1 n2 vdd gnd 74LVC04A_NEX
+X3  n2 n3 vdd gnd 74LVC04A_NEX
+Ct1 n1 gnd {cl}
+Ct2 n2 gnd {cl}
+Ct3 n3 gnd {cl}
+Rt  n1 tap 1m
+.ends
+
+Vdd vdd 0 DC 3.3
+
+Xa ta vdd 0 RING3 cl=0.01p
+Xb tb vdd 0 RING3 cl=1p
+Xc tc vdd 0 RING3 cl=2p
+Xd td vdd 0 RING3 cl=5p
+Xe te vdd 0 RING3 cl=10p
+Xf tf vdd 0 RING3 cl=20p
+Xg tg vdd 0 RING3 cl=33p
+Xh th vdd 0 RING3 cl=47p
+Xi ti vdd 0 RING3 cl=68p
+Xj tj vdd 0 RING3 cl=100p
+Xk tk vdd 0 RING3 cl=150p
+
+.ic v(xa.n1)=0 v(xa.n2)=3.3 v(xa.n3)=0
+.ic v(xb.n1)=0 v(xb.n2)=3.3 v(xb.n3)=0
+.ic v(xc.n1)=0 v(xc.n2)=3.3 v(xc.n3)=0
+.ic v(xd.n1)=0 v(xd.n2)=3.3 v(xd.n3)=0
+.ic v(xe.n1)=0 v(xe.n2)=3.3 v(xe.n3)=0
+.ic v(xf.n1)=0 v(xf.n2)=3.3 v(xf.n3)=0
+.ic v(xg.n1)=0 v(xg.n2)=3.3 v(xg.n3)=0
+.ic v(xh.n1)=0 v(xh.n2)=3.3 v(xh.n3)=0
+.ic v(xi.n1)=0 v(xi.n2)=3.3 v(xi.n3)=0
+.ic v(xj.n1)=0 v(xj.n2)=3.3 v(xj.n3)=0
+.ic v(xk.n1)=0 v(xk.n2)=3.3 v(xk.n3)=0
+
+* --- osobno: opoznienie bramki przy obciazeniu bliskim zeru ---
+Vin  in 0 PULSE(0 3.3 20n 0.3n 0.3n 30n 60n)
+Xg0  in o0 vdd 0 74LVC04A_NEX
+Cl0  o0 0 0.01p
+
+.control
+set noaskquit
+set nobreak
+echo ""
+echo "==================================================================="
+echo " Czestotliwosc ringu w funkcji pojemnosci wezla"
+echo "==================================================================="
+
+tran 1p 500n 0 1p
+
+meas tran a1 when v(ta)=1.65 rise=3 from=150n
+meas tran a2 when v(ta)=1.65 rise=13 from=150n
+meas tran b1 when v(tb)=1.65 rise=3 from=150n
+meas tran b2 when v(tb)=1.65 rise=13 from=150n
+meas tran c1 when v(tc)=1.65 rise=3 from=150n
+meas tran c2 when v(tc)=1.65 rise=13 from=150n
+meas tran d1 when v(td)=1.65 rise=3 from=150n
+meas tran d2 when v(td)=1.65 rise=13 from=150n
+meas tran e1 when v(te)=1.65 rise=3 from=150n
+meas tran e2 when v(te)=1.65 rise=13 from=150n
+meas tran f1 when v(tf)=1.65 rise=3 from=150n
+meas tran f2 when v(tf)=1.65 rise=13 from=150n
+meas tran g1 when v(tg)=1.65 rise=3 from=150n
+meas tran g2 when v(tg)=1.65 rise=13 from=150n
+meas tran h1 when v(th)=1.65 rise=3 from=150n
+meas tran h2 when v(th)=1.65 rise=13 from=150n
+meas tran i1 when v(ti)=1.65 rise=3 from=150n
+meas tran i2 when v(ti)=1.65 rise=13 from=150n
+meas tran j1 when v(tj)=1.65 rise=3 from=150n
+meas tran j2 when v(tj)=1.65 rise=13 from=150n
+meas tran k1 when v(tk)=1.65 rise=3 from=150n
+meas tran k2 when v(tk)=1.65 rise=13 from=150n
+
+let mf_000 = 10/(a2-a1)
+let mf_001 = 10/(b2-b1)
+let mf_002 = 10/(c2-c1)
+let mf_005 = 10/(d2-d1)
+let mf_010 = 10/(e2-e1)
+let mf_020 = 10/(f2-f1)
+let mf_033 = 10/(g2-g1)
+let mf_047 = 10/(h2-h1)
+let mf_068 = 10/(i2-i1)
+let mf_100 = 10/(j2-j1)
+let mf_150 = 10/(k2-k1)
+print mf_000 mf_001 mf_002 mf_005 mf_010
+print mf_020 mf_033 mf_047 mf_068 mf_100 mf_150
+
+echo ""
+echo "--- Opoznienie bramki przy obciazeniu ~0 (granica dolna okresu) ---"
+meas tran tpd0_hl trig v(in) val=1.65 rise=1 targ v(o0) val=1.65 fall=1
+meas tran tpd0_lh trig v(in) val=1.65 fall=1 targ v(o0) val=1.65 rise=1
+let tpd0 = (tpd0_hl+tpd0_lh)/2
+let fmax_ring = 1/(6*tpd0)
+print tpd0 fmax_ring
+echo "  fmax_ring = czestotliwosc ringu przy ZEROWYM obciazeniu zewnetrznym."
+echo "  Zadna pojemnosc sciezek nie moze podniesc czestotliwosci powyzej tej"
+echo "  wartosci -- i odwrotnie, kazde 50 MHz wymaga tlumaczenia skad bierze"
+echo "  sie reszta opoznienia."
+echo ""
+.endc
+.end

@@ -1,0 +1,58 @@
+* tb_ro_detune.cir -- EKSPERYMENT KONTROLNY do analizy sprzezenia ringow
+*
+* Dwa uklady, kazdy z jednym ringiem, na DWOCH ODDZIELNYCH IDEALNYCH
+* zasilaniach -- czyli zero sprzezenia jakakolwiek droga.
+* Ring B ma cxa = 0.6 pF (to samo rozstrojenie co w ro_coupling.py).
+*
+* Wynik tego testu (wlasna czestotliwosc kazdego ringu) jest punktem
+* odniesienia: dopiero wzgledem niego mozna powiedziec, czy w ukladzie hex
+* ringi sie WCIAGAJA, czy tylko przypadkiem maja podobna czestotliwosc.
+
+.include ../models/74LVC04A.lib
+
+VddA vda 0 DC 3.3
+VddB vdb 0 DC 3.3
+
+XA tapA vda 0 LVC04A_HEX_1RING cxa=1f
+XB tapB vdb 0 LVC04A_HEX_1RING cxa=0.6p
+
+CtA tapA 0 5p
+CtB tapB 0 5p
+
+.ic v(xa.a1)=0 v(xa.a2)=3.3 v(xa.a3)=0
+.ic v(xb.a1)=0 v(xb.a2)=3.3 v(xb.a3)=0
+
+.options cshunt=1f method=gear
+
+.control
+set noaskquit
+set nobreak
+echo ""
+echo "==================================================================="
+echo " Wlasne czestotliwosci obu ringow BEZ sprzezenia (kontrola)"
+echo "==================================================================="
+
+tran 1p 400n 0 1p
+
+meas tran a1 when v(xa.a1)=1.65 rise=5  from=150n
+meas tran a2 when v(xa.a1)=1.65 rise=25 from=150n
+meas tran b1 when v(xb.a1)=1.65 rise=5  from=150n
+meas tran b2 when v(xb.a1)=1.65 rise=25 from=150n
+
+let fA = 20/(a2-a1)
+let fB = 20/(b2-b1)
+let dfab = fA-fB
+print fA fB dfab
+echo "  dfab = WLASNA roznica czestotliwosci przy rozstrojeniu 0.6 pF."
+echo "  To jest wartosc odniesienia dla ro_coupling.py."
+echo ""
+
+* tetnienie na wewnetrznej szynie przy idealnym zasilaniu zewnetrznym
+meas tran vda_pp pp v(xa.vda) from=150n to=350n
+print vda_pp
+echo "  vda_pp = tetnienie na szynie krzemowej samych pasozytow obudowy,"
+echo "           przy IDEALNYM zasilaniu na pinie (dolna granica mozliwa"
+echo "           do osiagniecia jakimkolwiek filtrem zewnetrznym)."
+echo ""
+.endc
+.end

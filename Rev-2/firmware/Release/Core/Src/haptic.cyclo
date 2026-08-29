@@ -1,0 +1,8 @@
+../Core/Src/haptic.c:53:6:start_blink	8
+../Core/Src/haptic.c:92:6:ledPulse	6
+../Core/Src/haptic.c:112:6:ledSolidFor	3
+../Core/Src/haptic.c:126:6:ledSetSteady	2
+../Core/Src/haptic.c:135:6:ledClear	1
+../Core/Src/haptic.c:139:6:constantGlow	1
+../Core/Src/haptic.c:143:6:ledNormal	1
+../Core/Src/haptic.c:189:6:ledUpdate	13

@@ -10,7 +10,8 @@ The point of this tool over a modem terminal like minicom: it sends nothing on
 its own. No modem init string, no reset string on exit, no echo, no CR/LF
 translation. That matters because the firmware parses *every* received byte as a
 command, so a stray 's' writes flash, a stray digit changes the compression and
-a stray 'A'-'F' silently drops a ring oscillator channel.
+a stray 'A'-'F' (Rev-1) or 'A'-'H' (Rev-2) silently drops a ring oscillator
+channel.
 
 Quit with Ctrl-D.
 """
@@ -80,10 +81,15 @@ def main(argv=None):
 
     rx_total = 0
     buf = b""
+    rate_pending = False        # last key was 't', so the next digit is its parameter
 
     print(f"{args.port} open. Keys go out as single raw bytes. Ctrl-D quits.")
     print("Try: '?' for the status report, 'r'/'R' for RAW on/off, '1'-'9' for compression.")
     print(f"Each key is sent as {COMMAND_PREFIX.decode()}<key>; unprefixed bytes are ignored by the device.")
+    print("Rev-2 sampling rate: 't' then a digit, e.g. 't' '2' for 150 kHz. The digit")
+    print("goes out unprefixed, which is what the firmware expects - so type t, then 2.")
+    print("  0=50k  1=100k  2=150k  3=200k  4=250k  5=300k*  6=350k  7=400k  8=500k  9=600k")
+    print("  (* firmware default, paired with 6:1 compression - see the rate sweep)")
 
     try:
         tty.setraw(stdin_fd)
@@ -96,7 +102,14 @@ def main(argv=None):
                     break
                 # The firmware requires the prefix so that echoed entropy cannot
                 # act as commands. Added here so a key press stays one key press.
-                port.write(COMMAND_PREFIX + key)
+                # Exception: the digit after 't' is a parameter, not a command, and
+                # the firmware reads it unprefixed - see CDC_Receive_FS.
+                if rate_pending and key.isdigit():
+                    port.write(key)
+                    rate_pending = False
+                else:
+                    rate_pending = (key == b"t")
+                    port.write(COMMAND_PREFIX + key)
 
             if port.fileno() in ready:
                 chunk = port.read(4096)

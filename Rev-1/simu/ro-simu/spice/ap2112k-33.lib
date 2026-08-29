@@ -1,0 +1,7 @@
+* Czysty model AP2112K-3.3 bez spadku diodowego dla ngspice
+* Piny: 1=VIN, 2=GND, 3=EN, 4=NC, 5=VOUT
+.SUBCKT AP2112K-3.3 1 2 3 4 5
+B_spec V_int 2 V = { (V(3,2) > 1.7) ? MIN(V(1,2) - 0.32, 3.3) : 0 }
+Rout V_int 5 0.15
+Cint V_int 2 100n
+.ENDS
