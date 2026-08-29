@@ -1,0 +1,89 @@
+=== Rev_2/sweep/150kHz/channelA-H.bin ===
+4194304 simultaneous samples, noise floor 1 sigma = 0.00049, claim under test: ADFH
+per-channel H from Rev_2/sweep/150kHz/results.txt: A=0.5016  B=0.5797  C=0.5487  D=0.4583  E=0.5039  F=0.5012  G=0.4826  H=0.5459
+
+1. ALL 70 SUBSETS OF SIZE 4, best worst-|r| first
+   subset      worst |r|   sigma   sum MI [bit]     sum H
+   ADEG          0.00096     2.0       0.000002    1.9464
+   BDEG          0.00096     2.0       0.000001    2.0245
+   ACEG          0.00113     2.3       0.000002    2.0368
+   ACFH          0.00124     2.5       0.000003    2.0973
+   ADFH          0.00124     2.5       0.000001    2.0070  <- claim
+   BDFH          0.00124     2.5       0.000001    2.0850
+   ACEH          0.00137     2.8       0.000003    2.1001
+   ADEH          0.00137     2.8       0.000002    2.0097
+   BDEH          0.00137     2.8       0.000002    2.0878
+   ACDE          0.00316     6.5       0.000009    2.0125
+   ... 60 more, worst of all: EFGH at |r|=0.10046
+
+   Noise floor 1 sigma = 0.00049; a subset is 'clean' when its worst |r| < 0.00195 (4 sigma).
+   Clean subsets: 9 of 70.
+   Among the clean ones worst |r| spans 0.00041, i.e. 0.8 sigma - that spread is what the ranking inside this group is built on.
+   Clean subsets: ADEG, BDEG, ACEG, ACFH, ADFH, BDFH, ACEH, ADEH, BDEH
+
+2. SPLIT-HALF STABILITY over 4 independent partitions (blocks of 4096 samples)
+   Pick the best subset on half 1, then look up its rank on half 2.
+   A really better subset keeps rank 1. Noise gives a random rank.
+
+    split  best on half 1   its rank on half 2  best on half 2   claim rank h1/h2
+        1            ADFH                    8            ADEG                1/8
+        2            ACEG                    7            ADEH                5/6
+        3            BDEG                    4            BDFH                7/9
+        4            ADFH                    8            BDEG                1/8
+
+   Winner of half 1 lands on half 2 at rank: 8, 7, 4, 8
+   mean rank 6.8 of 70 subsets (9 of them clean)
+   ADFH ranks: half 1 [1, 5, 7, 1], half 2 [8, 6, 9, 8] (mean 5.6)
+
+   VERDICT: the winner does not survive resampling (0/4 times rank 1; a random pick among the clean subsets would average rank 5.0).
+   The ranking inside the clean group is noise. Any clean subset is as good as the 'best' one, and quoting its worst |r| as an achieved value overstates what was measured.
+
+3. WHAT DETERMINES COUPLING - adjacency of the bit index in the latch
+   bit distance   pairs    max |r|   mean |r|   examples
+   1                  3    0.10046    0.08875   E-F, B-C, G-H
+   2                  3    0.00508    0.00434   A-B, F-G, C-D
+   3                  4    0.00124    0.00083   F-H, A-C, B-D
+   4                  1    0.00137    0.00137   E-H
+   5                  1    0.00017    0.00017   A-D
+   other latch       16    0.00096    0.00035   D-G, C-H, A-E
+
+   Prediction: exactly the bit-distance-1 pairs are coupled, all others are not.
+   Holds without exception: all 3 adjacent pairs are coupled and none of the other 25 pairs is.
+   Consequence: any subset containing no adjacent pair is clean, and there is nothing to choose between such subsets.
+   Subsets of size 4 with no adjacent pair: 28 - predicted from the wiring alone, before looking at any data:
+     ABDE, ABDF, ABDG, ABDH, ABEG, ABEH, ABFG, ABFH, ACDE, ACDF, ACDG, ACDH, ACEG, ACEH, ACFG, ACFH, ADEG, ADEH, ADFG, ADFH, BDEG, BDEH, BDFG, BDFH, CDEG, CDEH, CDFG, CDFH
+
+4. WHAT THE SUBSET COSTS
+   set        rings  worst |r|   sum MI [bit]     sum H
+   all eight      8    0.10046       0.017461    4.1218
+   ADFH           4    0.00124       0.000001    2.0070
+
+   Removing the coupling saves 0.017460 bit/sample of mutual information,
+   which is 0.42% of the full budget (4.1218 bit/sample).
+   It gives up 2.1148 bit/sample of entropy, 51.3% of the budget.
+   Trade ratio: 121 bits of entropy given up per bit of mutual information removed.
+   Note both figures rest on per-channel H measured with one ring enabled at a time;
+   whether four rings together really deliver their sum is exactly what part 5 tests.
+
+5. THE CONTROL EXPERIMENT THAT WOULD SETTLE IT (needs the board)
+   Compare a clean subset (ADFH) with a deliberately coupled one (BCEF,
+   which contains two adjacent pairs) at the same ring count, then check each
+   assessed joint entropy against the sum of its channels. If coupling costs
+   real entropy, the coupled subset falls further below its sum.
+
+   # subset ADFH
+   python3 usb_read.py -s '!a!B!C!d!E!f!G!h!r' -o channelADFH.bin
+   python3 unpack_single_channel.py channelADFH.bin outputADFH.bin --bits 4 --bit-order little
+   ea_non_iid -v -i outputADFH.bin 4
+   # sum of per-channel H for ADFH: 2.0070 bit/sample
+
+   # subset BCEF
+   python3 usb_read.py -s '!A!b!c!D!e!f!G!H!r' -o channelBCEF.bin
+   python3 unpack_single_channel.py channelBCEF.bin outputBCEF.bin --bits 4 --bit-order little
+   ea_non_iid -v -i outputBCEF.bin 4
+   # sum of per-channel H for BCEF: 2.1335 bit/sample
+
+   Read it as: H_original(subset) versus that sum. Rev-1 saw the joint
+   figure come out far ABOVE the sum, which was a sign the joint
+   assessment is optimistic on interleaved sources - so treat a small
+   gap as inconclusive and a large deficit as real.

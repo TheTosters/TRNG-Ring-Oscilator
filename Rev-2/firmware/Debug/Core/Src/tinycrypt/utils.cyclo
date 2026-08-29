@@ -1,0 +1,4 @@
+../Core/Src/tinycrypt/utils.c:40:14:_copy	2
+../Core/Src/tinycrypt/utils.c:51:6:_set	1
+../Core/Src/tinycrypt/utils.c:59:9:_double_byte	1
+../Core/Src/tinycrypt/utils.c:64:5:_compare	2

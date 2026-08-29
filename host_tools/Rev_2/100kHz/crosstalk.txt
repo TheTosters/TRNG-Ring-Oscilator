@@ -1,0 +1,42 @@
+=== /home/toster/work/multi_rng/host_tools/Rev_2/100kHz/channelA-H.bin ===
+1048576 simultaneous samples, noise floor 1 sigma = 0.00098
+bias (fraction of ones): A=0.5009  B=0.5132  C=0.5095  D=0.5117  E=0.5058  F=0.5192  G=0.5119  H=0.4924
+
+Pearson correlation at lag 0:
+              A        B        C        D        E        F        G        H
+   A          .  -0.0062   0.0008  -0.0008  -0.0011   0.0001  -0.0005   0.0004
+   B    -0.0062        .   0.0961  -0.0018   0.0004  -0.0001  -0.0008   0.0006
+   C     0.0008   0.0961        .  -0.0025   0.0007   0.0010  -0.0008  -0.0009
+   D    -0.0008  -0.0018  -0.0025        .  -0.0004  -0.0006   0.0008  -0.0002
+   E    -0.0011   0.0004   0.0007  -0.0004        .   0.0996  -0.0009  -0.0005
+   F     0.0001  -0.0001   0.0010  -0.0006   0.0996        .  -0.0047  -0.0009
+   G    -0.0005  -0.0008  -0.0008   0.0008  -0.0009  -0.0047        .   0.0721
+   H     0.0004   0.0006  -0.0009  -0.0002  -0.0005  -0.0009   0.0721        .
+
+Pairs above 4 sigma, with their strongest non-zero lag:
+   E-F:  lag 0 r=+0.0996 (102 sigma)   best r=-0.0142 at lag +1   MI=0.007201 bit   same group
+   B-C:  lag 0 r=+0.0961 ( 98 sigma)   best r=+0.0147 at lag +1   MI=0.006670 bit   same group
+   G-H:  lag 0 r=+0.0721 ( 74 sigma)   best r=+0.0132 at lag -1   MI=0.003748 bit   same group
+   A-B:  lag 0 r=-0.0062 (  6 sigma)   best r=-0.0030 at lag -59   MI=0.000028 bit   same group
+   F-G:  lag 0 r=-0.0047 (  5 sigma)   best r=-0.0026 at lag -42   MI=0.000016 bit   same group
+
+Total mutual information over all 28 pairs: 0.017676 bit/sample
+
+Coupling by ring group (Rev-1 found packages, not distance, to be what mattered):
+   group                                pairs    max |r|   mean |r|   sum MI [bit]
+   T     (rings 1-4, latch B, 3G04)         6     0.0961     0.0180       0.006705
+   plain (rings 5-8, latch A, 1G04)         6     0.0996     0.0298       0.010965
+   across groups                           16     0.0011     0.0006       0.000005
+   (noise floor 1 sigma = 0.00098, so |r| below 0.0039 is not resolvable at 4 sigma)
+
+Per-channel min-entropy used for the budget (bit per bit, from the supplied assessment):
+   A=0.5885  B=0.5436  C=0.6322  D=0.5752  E=0.5936  F=0.5764  G=0.5635  H=0.5759
+Entropy budget (sum over channels): 4.648942 bit/sample
+Coupling costs 0.38% of the budget
+
+Subsets: entropy against the worst coupling inside the subset
+   subset    note                       sum H   worst |r|   sigma
+   ABCDEFGH  all eight                 4.6489      0.0996     102
+   ABCD      T                         2.3396      0.0961      98
+   EFGH      plain                     2.3094      0.0996     102
+   ADFH      best 4 by coupling        2.3161      0.0009       1

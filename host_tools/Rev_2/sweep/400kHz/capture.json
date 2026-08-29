@@ -1,0 +1,11 @@
+{
+  "index": 7,
+  "fs_requested": 400000,
+  "fs_reported": 400000,
+  "bytes": 4194304,
+  "seconds": 10.772700071334839,
+  "drop_usb": 0,
+  "drop_col": 3756,
+  "health": 0,
+  "timestamp": "2026-08-28 18:55:36"
+}

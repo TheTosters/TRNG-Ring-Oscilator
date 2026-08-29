@@ -1,0 +1,118 @@
+* tb_ro_vcc_iv.cir -- tablica diagnostyczna: VCC -> czestotliwosc, prad, spadek na ferrycie
+*
+* Powod powstania: pomiar na plytce dal 4.3 mV na FB4 (uklad U2, dwa ringi),
+* co przy R_DC = 0.50 Ohm oznacza 8.6 mA. Oscyloskop pokazywal ~50 MHz.
+* Te dwie liczby NIE sa ze soba zgodne przy VCC = 3.3 V -- 50 MHz wymagaloby
+* ok. 15 mA. Ta niezgodnosc jest wskazowka, wiec trzeba miec pelna tablice
+* f oraz I w funkcji napiecia zasilania, zeby dalo sie odczytac ktora
+* kombinacja (f, I) jest samospojna.
+*
+* Kazda sekcja = jeden uklad = DWA ringi na wspolnym zasilaniu, geometria
+* sciezek jak na plytce dla U2 (ringi /D0 i /D1).
+
+.include ../models/74LVC04A.lib
+
+.param cpmm=0.0395p
+.param chc=4p
+
+.subckt RING3 tap vdd gnd params: c1=0.1p c2=0.1p c3=1p
+X1  n3 n1 vdd gnd 74LVC04A_NEX
+X2  n1 n2 vdd gnd 74LVC04A_NEX
+X3  n2 n3 vdd gnd 74LVC04A_NEX
+Ca  n1 gnd {c1}
+Cb  n2 gnd {c2}
+Cc  n3 gnd {c3}
+Rt  n3 tap 1m
+.ends
+
+* --- uklad U2: ring A (/D0) i ring B (/D1) na wspolnym VCC ---
+.subckt CHIP2 tA tB vdd gnd
+XA tA vdd gnd RING3 c1={3.26*cpmm} c2={2.83*cpmm} c3={11.99*cpmm+chc}
+XB tB vdd gnd RING3 c1={1.77*cpmm} c2={1.78*cpmm} c3={21.13*cpmm+chc}
+.ends
+
+V33 v33 0 DC 3.30
+V30 v30 0 DC 3.00
+V26 v26 0 DC 2.60
+V22 v22 0 DC 2.20
+V20 v20 0 DC 2.00
+V18 v18 0 DC 1.80
+V16 v16 0 DC 1.60
+
+X33 a33 b33 v33 0 CHIP2
+X30 a30 b30 v30 0 CHIP2
+X26 a26 b26 v26 0 CHIP2
+X22 a22 b22 v22 0 CHIP2
+X20 a20 b20 v20 0 CHIP2
+X18 a18 b18 v18 0 CHIP2
+X16 a16 b16 v16 0 CHIP2
+
+.ic v(x33.xa.n1)=0 v(x33.xa.n2)=3.30 v(x33.xb.n1)=0 v(x33.xb.n2)=3.30
+.ic v(x30.xa.n1)=0 v(x30.xa.n2)=3.00 v(x30.xb.n1)=0 v(x30.xb.n2)=3.00
+.ic v(x26.xa.n1)=0 v(x26.xa.n2)=2.60 v(x26.xb.n1)=0 v(x26.xb.n2)=2.60
+.ic v(x22.xa.n1)=0 v(x22.xa.n2)=2.20 v(x22.xb.n1)=0 v(x22.xb.n2)=2.20
+.ic v(x20.xa.n1)=0 v(x20.xa.n2)=2.00 v(x20.xb.n1)=0 v(x20.xb.n2)=2.00
+.ic v(x18.xa.n1)=0 v(x18.xa.n2)=1.80 v(x18.xb.n1)=0 v(x18.xb.n2)=1.80
+.ic v(x16.xa.n1)=0 v(x16.xa.n2)=1.60 v(x16.xb.n1)=0 v(x16.xb.n2)=1.60
+
+.options cshunt=1f
+
+.control
+set noaskquit
+set nobreak
+echo ""
+echo "==================================================================="
+echo " VCC -> czestotliwosc ringu, prad ukladu, spadek na ferrycie 0.50 R"
+echo "==================================================================="
+
+tran 1p 700n 0 1p
+
+* --- czestotliwosci (prog = polowa danego VCC) ---
+meas tran t33a when v(a33)=1.650 rise=3 from=250n
+meas tran t33b when v(a33)=1.650 rise=13 from=250n
+meas tran t30a when v(a30)=1.500 rise=3 from=250n
+meas tran t30b when v(a30)=1.500 rise=13 from=250n
+meas tran t26a when v(a26)=1.300 rise=3 from=250n
+meas tran t26b when v(a26)=1.300 rise=13 from=250n
+meas tran t22a when v(a22)=1.100 rise=3 from=250n
+meas tran t22b when v(a22)=1.100 rise=13 from=250n
+meas tran t20a when v(a20)=1.000 rise=3 from=250n
+meas tran t20b when v(a20)=1.000 rise=13 from=250n
+meas tran t18a when v(a18)=0.900 rise=3 from=250n
+meas tran t18b when v(a18)=0.900 rise=13 from=250n
+meas tran t16a when v(a16)=0.800 rise=3 from=250n
+meas tran t16b when v(a16)=0.800 rise=13 from=250n
+
+let f33 = 10/(t33b-t33a)
+let f30 = 10/(t30b-t30a)
+let f26 = 10/(t26b-t26a)
+let f22 = 10/(t22b-t22a)
+let f20 = 10/(t20b-t20a)
+let f18 = 10/(t18b-t18a)
+let f16 = 10/(t16b-t16a)
+print f33 f30 f26 f22 f20 f18 f16
+
+* --- prady calego ukladu (2 ringi) w oknie ustalonym ---
+meas tran i33 avg i(V33) from=300n to=650n
+meas tran i30 avg i(V30) from=300n to=650n
+meas tran i26 avg i(V26) from=300n to=650n
+meas tran i22 avg i(V22) from=300n to=650n
+meas tran i20 avg i(V20) from=300n to=650n
+meas tran i18 avg i(V18) from=300n to=650n
+meas tran i16 avg i(V16) from=300n to=650n
+print i33 i30 i26 i22 i20 i18 i16
+
+* --- spadek na ferrycie 0.50 Ohm, w miliwoltach ---
+let u33 = -i33*0.5*1000
+let u30 = -i30*0.5*1000
+let u26 = -i26*0.5*1000
+let u22 = -i22*0.5*1000
+let u20 = -i20*0.5*1000
+let u18 = -i18*0.5*1000
+let u16 = -i16*0.5*1000
+print u33 u30 u26 u22 u20 u18 u16
+echo ""
+echo "  u.. = spodziewany odczyt woltomierza na FB4 [mV] dla danego VCC"
+echo ""
+.endc
+.end

@@ -1,0 +1,165 @@
+* ============================================================================
+*  passives.lib  --  modele pasywnych elementow sieci zasilania RO-TRNG
+*  Dla ngspice (KiCad 9 / libngspice-42)
+* ----------------------------------------------------------------------------
+*  UWAGA: w schemacie simu ferryty byly zastapione przez L=100n + R=0.1.
+*  To jest bledny zastepnik. Realna plytka uzywa BLM18AG102SN1D (FB2..FB5),
+*  ktory ma ~1 kOhm @ 100 MHz i ~2.2 uH na niskich czestotliwosciach.
+*  Rozniaca sie o ponad rzad wielkosci indukcyjnosc calkowicie zmienia
+*  polozenie rezonansu LC z kondensatorami odsprzegajacymi.
+* ============================================================================
+
+* ----------------------------------------------------------------------------
+*  FERRYT: BLM18AG102SN1D (Murata, 0603, 1000 Ohm @ 100 MHz, 450 mA)
+* ----------------------------------------------------------------------------
+*  Topologia szerokopasmowa: Rdc + [ L || Rp || Cp ]
+*    - na niskich f zachowuje sie indukcyjnie  (L)
+*    - w okolicy f0 = 1/(2*pi*sqrt(L*Cp)) jest czysto rezystancyjny (Rdc+Rp)
+*    - powyzej f0 pojemnosciowo maleje
+*
+*  Dopasowanie parametrow do karty katalogowej:
+*    |Z| @ 100 MHz  = 1027 Ohm   (kat.: 1000 Ohm +/-25%)
+*    |Z| max        = 1201 Ohm   @ 181 MHz
+*    Rdc            = 0.50 Ohm  (wartosc poczatkowa wg karty; 0.60 Ohm @125 C)
+*    |Z| @ 1 MHz    = 13.8 Ohm   (obszar indukcyjny, L = 2.2 uH)
+*
+*  OGRANICZENIE MODELU: model jest liniowy, nie odwzorowuje spadku L przy
+*  podmagnesowaniu pradem DC. Prad znamionowy tego elementu to 450 mA, a
+*  najbardziej obciazony ferryt na plytce (FB2, suma trzech ukladow) prowadzi
+*  ok. 145 mA, czyli ~32 % wartosci znamionowej -- spadek indukcyjnosci jest
+*  w tym punkcie niewielki i model nominalny jest uzasadniony. Parametr `l`
+*  mozna zmniejszyc, zeby sprawdzic wrazliwosc.
+*
+.subckt BLM18AG102SN1D 1 2 params: rdc=0.50 l=2.2u rp=1200 cp=0.35p
+Rs   1   a   {rdc}
+Lf   a   2   {l}
+Rpar a   2   {rp}
+Cpar a   2   {cp}
+.ends
+
+* ----------------------------------------------------------------------------
+*  Alternatywa do porownania: zwykly rezystor tlumiacy zamiast ferrytu
+* ----------------------------------------------------------------------------
+.subckt RFILT 1 2 params: r=10
+Rf 1 2 {r}
+.ends
+
+* ----------------------------------------------------------------------------
+*  KONDENSATORY MLCC
+* ----------------------------------------------------------------------------
+*  Model: C(efektywna) + ESR + ESL, gdzie ESL zawiera juz indukcyjnosc
+*  wlasna obudowy. Indukcyjnosc montazu (pady, sciezka, przelotki) jest
+*  ODDZIELNYM parametrem `lmnt`, zeby bylo widac jej wplyw -- na 150 MHz
+*  to ona zwykle decyduje o skutecznosci odsprzegania, nie sama pojemnosc.
+*
+*  `c` to pojemnosc EFEKTYWNA przy napieciu pracy 3.3 V, nie nominalna.
+*  Derating dielektryka (istotny dla X5R/X7R o duzej gestosci):
+*     0402 100nF X7R 16V @3.3V   -> ~85 nF     (-15%)
+*     0402 2.2nF X7R/C0G         -> ~2.2 nF    (bez deratingu, maly ladunek)
+*     0603 1uF X5R 6.3V @3.3V    -> ~0.7 uF    (-30%)
+*     0805 10uF X5R 6.3V @3.3V   -> ~6 uF      (-40%)
+*  Jesli uzyto 6.3V X5R w 0805 dla 10uF, realna pojemnosc @3.3V moze byc
+*  jeszcze nizsza. To zmienia czestotliwosc rezonansu z ferrytem.
+*
+.subckt CAP 1 2 params: c=100n esr=25m esl=0.55n lmnt=0.6n
+Cc  1   a   {c}
+Rc  a   b   {esr}
+Lc  b   2   {esl+lmnt}
+.ends
+
+*  Gotowe warianty (wartosci typowe, MLCC klasy II, montaz krotki):
+.subckt C0402_2N2  1 2
+Xc 1 2 CAP c=2.2n  esr=250m esl=0.55n lmnt=0.6n
+.ends
+.subckt C0402_100N 1 2
+Xc 1 2 CAP c=85n   esr=25m  esl=0.55n lmnt=0.6n
+.ends
+.subckt C0603_100N 1 2
+Xc 1 2 CAP c=88n   esr=22m  esl=0.70n lmnt=0.7n
+.ends
+.subckt C0603_1U   1 2
+Xc 1 2 CAP c=0.7u  esr=12m  esl=0.70n lmnt=0.7n
+.ends
+.subckt C0805_1U   1 2
+Xc 1 2 CAP c=0.8u  esr=15m  esl=0.90n lmnt=0.8n
+.ends
+.subckt C0805_10U  1 2
+Xc 1 2 CAP c=6u    esr=8m   esl=0.90n lmnt=0.8n
+.ends
+.subckt C0402_4N7  1 2
+Xc 1 2 CAP c=4.7n  esr=180m esl=0.55n lmnt=0.6n
+.ends
+
+* ----------------------------------------------------------------------------
+*  SCIEZKA / POLACZENIE  (odcinek na PCB, ok. 1 nH/mm dla waskiej sciezki
+*  nad plaszczyzna masy; 0.3..0.5 nH/mm dla szerokiej)
+* ----------------------------------------------------------------------------
+*  UWAGA na kolejnosc: rezystor MUSI byc od strony wezla 1, a cewka od
+*  strony 2. Odwrotna kolejnosc tworzy wezel posredni polaczony wylacznie
+*  z dwoma cewkami / bez zadnej pojemnosci, co w tranzjencie konczy sie
+*  bledem "timestep too small".
+.subckt TRACE 1 2 params: len=5 lpermm=0.7n rr=10m
+Rt 1 a {rr}
+Lt a 2 {len*lpermm}
+.ends
+
+* ----------------------------------------------------------------------------
+*  FERRYT 600 Ohm @ 100 MHz, 0603  -- uzyty w Rev-2 (FB3..FB10)
+* ----------------------------------------------------------------------------
+*  Parametry oszacowane (dokladny numer katalogowy nie jest podany w BOM):
+*    |Z| @ 100 MHz = 592 Ohm, L = 0.95 uH (obszar indukcyjny), Rdc = 0.3 Ohm
+*  Nizsza L niz BLM18AG102 (2.2 uH) przesuwa rezonans z odsprzegajacymi
+*  kondensatorami w gore i obniza jego dobroc -- ale go nie usuwa.
+.subckt FB600 1 2 params: rdc=0.30 l=0.95u rp=1000 cp=0.5p
+Rs   1   a   {rdc}
+Lf   a   2   {l}
+Rpar a   2   {rp}
+Cpar a   2   {cp}
+.ends
+
+* ----------------------------------------------------------------------------
+*  FERRYT: GZ1608D601TF (Sunlord, 0603, material D)  -- Rev-2 FB2..FB10
+* ----------------------------------------------------------------------------
+*  Karta katalogowa C1002.pdf (Sunlord GZ series, rev. 2024/06/19):
+*    Z @ 100 MHz = 600 Ohm +/-25%   DCR max = 0.45 Ohm   Ir max = 200 mA
+*  Parametry modelu wyciagniete z krzywej R/X/Z karty (str. 8, GZ1608D601TF):
+*    szczyt |Z| = 700 Ohm @ 160 MHz (tam X przechodzi przez zero) -> Rp = 700
+*    przy 100 MHz odczytane R = 470 Ohm, X = +330 Ohm
+*    stad L = 0.97 uH, Cp = 1.0 pF
+*  Kontrola: model daje |Z| @ 100 MHz = 573 Ohm (karta: 600 +/-25% = 450..750)
+*
+.subckt GZ1608D601TF 1 2 params: rdc=0.45 l=0.97u rp=700 cp=1.0p
+Rs   1   a   {rdc}
+Lf   a   2   {l}
+Rpar a   2   {rp}
+Cpar a   2   {cp}
+.ends
+
+*  Kondensatory dodatkowe potrzebne w studium Rev-2
+.subckt C0805_4U7  1 2
+Xc 1 2 CAP c=3.3u  esr=8m  esl=0.90n lmnt=0.8n
+.ends
+.subckt C1206_4U7  1 2
+Xc 1 2 CAP c=3.5u  esr=6m  esl=1.10n lmnt=0.8n
+.ends
+.subckt C1206_1U   1 2
+Xc 1 2 CAP c=0.85u esr=10m esl=1.10n lmnt=0.8n
+.ends
+.subckt C1206_10U  1 2
+Xc 1 2 CAP c=6.5u  esr=5m  esl=1.10n lmnt=0.8n
+.ends
+*  Dlawik L2: ABC-ATEC ACC4532220x2x, 22 uH, 4.5x3.2 mm (1812)
+*  Karta C22469096.pdf: L = 22 uH (J/K), Q min 20 @2.52 MHz,
+*  SRF min 12.0 MHz, RDC max 0.900 Ohm, Isat typ 0.50 A (dL/L=10%),
+*  Irms max 0.62 A (dT = 40 C).
+*  Cp dobrane tak, zeby SRF = 12.0 MHz: Cp = 1/((2*pi*SRF)^2 * L) = 8.0 pF.
+.subckt L1812_22U 1 2 params: l=22u rdc=0.90 cp=8.0p rp=6k
+Rs 1 a {rdc}
+Lf a 2 {l}
+Cpar a 2 {cp}
+Rpar a 2 {rp}
+.ends
+
+.subckt C0402_1N   1 2
+Xc 1 2 CAP c=1.0n  esr=350m esl=0.55n lmnt=0.6n
+.ends

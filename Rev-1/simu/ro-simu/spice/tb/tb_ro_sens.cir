@@ -1,0 +1,104 @@
+* tb_ro_sens.cir -- czulosc czestotliwosci ringu na napiecie zasilania
+* To jest kluczowa liczba dla TRNG: mowi ile modulacji czestotliwosci (a wiec
+* ile deterministycznego jitteru) wnosi kazdy milivolt tetnienia na VCC.
+* Jesli siec zasilania ma rezonans, to wlasnie przez ten wspolczynnik zamienia
+* sie on na periodyczna strukture w strumieniu bitow.
+*
+* Realizacja: 9 niezaleznych kopii ringu, kazda na innym (sztywnym) napieciu,
+* jeden wspolny tranzjent. Prosciej i pewniej niz petla foreach w .control.
+
+.include ../models/74LVC04A.lib
+.param ct=1p
+
+.subckt RING3 tap vdd gnd
+X1  n3 n1 vdd gnd 74LVC04A_NEX
+X2  n1 n2 vdd gnd 74LVC04A_NEX
+X3  n2 n3 vdd gnd 74LVC04A_NEX
+Ct1 n1 gnd {ct}
+Ct2 n2 gnd {ct}
+Ct3 n3 gnd {ct}
+Rt  n1 tap 1m
+.ends
+
+Va  va 0 DC 3.00
+Vb  vb 0 DC 3.15
+Vc  vc 0 DC 3.20
+Vd  vd 0 DC 3.25
+Ve  ve 0 DC 3.30
+Vf  vf 0 DC 3.35
+Vg  vg 0 DC 3.40
+Vh  vh 0 DC 3.45
+Vi  vi 0 DC 3.60
+
+Xa ta va 0 RING3
+Xb tb vb 0 RING3
+Xc tc vc 0 RING3
+Xd td vd 0 RING3
+Xe te ve 0 RING3
+Xf tf vf 0 RING3
+Xg tg vg 0 RING3
+Xh th vh 0 RING3
+Xi ti vi 0 RING3
+
+.ic v(xa.n1)=0 v(xa.n2)=3.0  v(xa.n3)=0
+.ic v(xb.n1)=0 v(xb.n2)=3.15 v(xb.n3)=0
+.ic v(xc.n1)=0 v(xc.n2)=3.2  v(xc.n3)=0
+.ic v(xd.n1)=0 v(xd.n2)=3.25 v(xd.n3)=0
+.ic v(xe.n1)=0 v(xe.n2)=3.3  v(xe.n3)=0
+.ic v(xf.n1)=0 v(xf.n2)=3.35 v(xf.n3)=0
+.ic v(xg.n1)=0 v(xg.n2)=3.4  v(xg.n3)=0
+.ic v(xh.n1)=0 v(xh.n2)=3.45 v(xh.n3)=0
+.ic v(xi.n1)=0 v(xi.n2)=3.6  v(xi.n3)=0
+
+.control
+set noaskquit
+set nobreak
+echo ""
+echo "==================================================================="
+echo " Czulosc czestotliwosci ringu na VCC  (dF/dVCC)"
+echo "==================================================================="
+
+tran 1p 320n 0 1p
+
+* okres z 20 okresow, mierzony w oknie ustalonym
+meas tran a1 when v(ta)=1.500 rise=3  from=100n
+meas tran a2 when v(ta)=1.500 rise=18 from=100n
+meas tran b1 when v(tb)=1.575 rise=3  from=100n
+meas tran b2 when v(tb)=1.575 rise=18 from=100n
+meas tran c1 when v(tc)=1.600 rise=3  from=100n
+meas tran c2 when v(tc)=1.600 rise=18 from=100n
+meas tran d1 when v(td)=1.625 rise=3  from=100n
+meas tran d2 when v(td)=1.625 rise=18 from=100n
+meas tran e1 when v(te)=1.650 rise=3  from=100n
+meas tran e2 when v(te)=1.650 rise=18 from=100n
+meas tran f1 when v(tf)=1.675 rise=3  from=100n
+meas tran f2 when v(tf)=1.675 rise=18 from=100n
+meas tran g1 when v(tg)=1.700 rise=3  from=100n
+meas tran g2 when v(tg)=1.700 rise=18 from=100n
+meas tran h1 when v(th)=1.725 rise=3  from=100n
+meas tran h2 when v(th)=1.725 rise=18 from=100n
+meas tran i1 when v(ti)=1.800 rise=3  from=100n
+meas tran i2 when v(ti)=1.800 rise=18 from=100n
+
+let f300 = 15/(a2-a1)
+let f315 = 15/(b2-b1)
+let f320 = 15/(c2-c1)
+let f325 = 15/(d2-d1)
+let f330 = 15/(e2-e1)
+let f335 = 15/(f2-f1)
+let f340 = 15/(g2-g1)
+let f345 = 15/(h2-h1)
+let f360 = 15/(i2-i1)
+print f300 f315 f320 f325 f330 f335 f340 f345 f360
+
+* nachylenie wokol punktu pracy 3.3 V (roznica centralna +/-50 mV)
+let dfdv = (f335-f325)/0.10
+print dfdv
+echo "  dfdv = dF/dVCC w Hz/V wokol 3.3 V"
+
+* prady srednie
+meas tran iavg_e avg i(Ve) from=120n to=220n
+print iavg_e
+echo ""
+.endc
+.end

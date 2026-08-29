@@ -1,0 +1,6 @@
+../Core/Src/haptic.c:32:13:set_led	2
+../Core/Src/haptic.c:40:6:start_blink	10
+../Core/Src/haptic.c:76:6:constantGlow	1
+../Core/Src/haptic.c:80:6:ledNormal	1
+../Core/Src/haptic.c:84:13:ledUpdateChannel	10
+../Core/Src/haptic.c:116:6:ledUpdate	2

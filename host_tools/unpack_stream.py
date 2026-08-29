@@ -7,8 +7,10 @@ is the 0/1 value of that channel's bit, one byte per input bit position.
 Bit order within each byte selects which physical bit is "channel 1":
 
   * ``big`` (MSB-first, default): channel 1 = bit 7, channel 8 = bit 0.
-    This matches ``check_streams_corelation.py`` (BIT_ORDER = 'big').
-  * ``little`` (LSB-first): channel 1 = bit 0, channel 8 = bit 7.
+    This is NOT what the firmware does - see ``little`` below.
+  * ``little`` (LSB-first): channel 1 = bit 0, channel 8 = bit 7. **This is
+    what both firmware revisions do**, and what ``check_streams_corelation_rev1.py``
+    / ``_rev2.py`` and ``collect_all_rev1.sh`` / ``_rev2.sh`` use.
 
 Example: ``--channel 3`` writes the 3rd bit of every byte (in the chosen bit
 order) as a sequence of 0x00/0x01 bytes.

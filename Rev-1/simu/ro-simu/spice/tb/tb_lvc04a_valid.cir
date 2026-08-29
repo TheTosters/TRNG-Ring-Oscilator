@@ -1,0 +1,84 @@
+* tb_lvc04a_valid.cir -- walidacja modelu 74LVC04A wzgledem karty katalogowej
+* Mierzy: t_pd @ CL=50pF/RL=500R, C_PD, sile wyjscia V_OL/V_OH @ 24 mA
+* Warunki jak Tab.7/Tab.8: VCC=3.3V, VI=2.7V, tr/tf=2.5ns, VM=1.5V
+
+.include ../models/74LVC04A.lib
+
+.param vcc=3.3
+.param fsw=1meg
+
+* ---------------- (1) t_pd : CL = 50 pF, RL = 500 R ----------------
+Vcc1  vdd1 0 DC {vcc}
+Vin1  in1  0 PULSE(0 2.7 20n 2.5n 2.5n 250n 500n)
+X1    in1 out1 vdd1 0 74LVC04A_NEX
+Cl1   out1 0 50p
+Rl1   out1 0 500
+
+* ---------------- (2) C_PD : wyjscie nieobciazone (IO = 0) ----------------
+Vcc2  vdd2 0 DC {vcc}
+Vin2  in2  0 PULSE(0 {vcc} 20n 2n 2n {0.5/fsw-2n} {1/fsw})
+X2    in2 out2 vdd2 0 74LVC04A_NEX
+
+* ---------------- (3) sila wyjscia: wymuszony prad 24 mA ----------------
+* stan LOW  (wejscie H) -> mierzymy V_OL przy IO = +24 mA (prad wplywa)
+Vcc3  vdd3 0 DC 3.0
+Vin3  in3  0 DC 3.0
+X3    in3 out3 vdd3 0 74LVC04A_NEX
+Iol   0 out3 DC 24m
+* stan HIGH (wejscie L) -> mierzymy V_OH przy IO = -24 mA (prad wyplywa)
+Vcc4  vdd4 0 DC 3.0
+Vin4  in4  0 DC 0
+X4    in4 out4 vdd4 0 74LVC04A_NEX
+Ioh   out4 0 DC 24m
+
+.control
+set noaskquit
+set nobreak
+
+echo ""
+echo "=============================================================="
+echo " 74LVC04A -- walidacja modelu wzgledem karty katalogowej"
+echo "=============================================================="
+
+* --- statyka: sila wyjscia ---
+op
+let vol = v(out3)
+let voh = v(out4)
+echo ""
+echo "--- Sila wyjscia (VCC = 3.0 V, |IO| = 24 mA) ---"
+print vol voh
+echo "  kat.: V_OL <= 0.55 V  (limit max),  V_OH >= 2.2 V  (limit min)"
+let ron_n = vol/24m
+let ron_p = (3.0-voh)/24m
+print ron_n ron_p
+echo "  Ron_n / Ron_p -- rezystancja wyjsciowa w stanie L / H"
+
+* --- tranzjent: t_pd oraz C_PD ---
+tran 5p 1.05u 0 5p
+echo ""
+echo "--- Opoznienie propagacji (CL = 50 pF, RL = 500 R, VM = 1.5 V) ---"
+meas tran tphl trig v(in1) val=1.5 rise=1 targ v(out1) val=1.5 fall=1
+meas tran tplh trig v(in1) val=1.5 fall=1 targ v(out1) val=1.5 rise=1
+echo "  kat.: t_pd(typ) = 2.0 ns dla VCC 3.0..3.6 V"
+
+echo ""
+echo "--- C_PD (wyjscie nieobciazone, f = 1 MHz) ---"
+* sredni prad zasilania w calkowitej liczbie okresow (od 50n do 1050n = 1us)
+meas tran qcc integ i(Vcc2) from=50n to=1050n
+let icc_avg = -qcc/1u
+let cpd = icc_avg/(3.3*1e6)
+print icc_avg cpd
+echo "  kat.: C_PD(typ) = 9.9 pF na bufor przy VCC 3.0..3.6 V"
+
+echo ""
+echo "--- Szczytowy impuls pradu zasilania jednej bramki ---"
+let icc2 = -i(Vcc2)
+meas tran icc_pk max icc2 from=50n to=1050n
+echo ""
+
+* zapis przebiegow do analizy
+set wr_singlescale
+set wr_vecnames
+wrdata ../out/lvc04a_valid.dat v(in1) v(out1) v(in2) v(out2) icc2
+.endc
+.end

@@ -1,0 +1,2 @@
+../Core/Src/flash_storage.c:18:6:save_config	4
+../Core/Src/flash_storage.c:50:6:load_config	1

@@ -1,0 +1,137 @@
+* tb_ro_real.cir -- szesc ringow z RZECZYWISTA geometria sciezek z plytki
+*
+* Dane wyciagniete z Rev-1/hardware/RO-Trng.kicad_pcb:
+*   plytka 2-warstwowa, grubosc 1.6 mm, wszystkie sciezki ringow 0.2 mm
+*
+*   ring        wezel 1        wezel 2        wezel 3 (wyprowadzony do U4)
+*   U2 A       U2-Pad11 3.26  U2-Pad10 2.83  /D0 11.99 mm
+*   U2 B       U2-Pad2  1.77  U2-Pad4  1.78  /D1 21.13 mm
+*   U1 A       U1-Pad11 2.57  U1-Pad10 2.57  /D2 20.57 mm (+2 przelotki)
+*   U1 B       U1-Pad2  0.65  U1-Pad4  0.65  /D3 16.76 mm
+*   U3 A       U3-Pad11 3.51  U3-Pad10 3.63  /D4 12.89 mm
+*   U3 B       U3-Pad2  0.65  U3-Pad4  0.65  /D5 18.49 mm
+*
+* POJEMNOSC SCIEZKI -- policzona dla tej geometrii, nie zgadnieta:
+*   mikropasek w = 0.2 mm nad plaszczyzna masy h = 1.6 mm, eps_r = 4.3
+*   w/h = 0.125  ->  Z0 = 142 Ohm,  eps_eff = 2.82,  v = 179 mm/ns
+*   C' = 1/(Z0*v) = 0.040 pF/mm      (czyli 0.4 pF/cm)
+*   opoznienie      = 5.6 ps/mm
+*
+* To jest kluczowa liczba: przy 1.6 mm dielektryka i sciezce 0.2 mm
+* pojemnosc na milimetr jest MALA. Nawet najdluzsza sciezka /D1 (21 mm)
+* to tylko 0.85 pF.
+*
+* Do wezlow /Dx dochodzi wejscie 74HC174 (C_I typ. 3.5 pF, max 10 pF)
+* oraz pojemnosc padow. Przelotka ~0.5 pF.
+
+.include ../models/74LVC04A.lib
+
+.param cpmm=0.0395p        ; pF/mm dla tej geometrii
+.param chc=4p              ; wejscie 74HC174 + pad
+.param cvia=0.5p
+
+.subckt RING3 tap vdd gnd params: c1=0.1p c2=0.1p c3=1p
+X1  n3 n1 vdd gnd 74LVC04A_NEX
+X2  n1 n2 vdd gnd 74LVC04A_NEX
+X3  n2 n3 vdd gnd 74LVC04A_NEX
+Ca  n1 gnd {c1}
+Cb  n2 gnd {c2}
+Cc  n3 gnd {c3}
+Rt  n3 tap 1m
+.ends
+
+Vdd vdd 0 DC 3.3
+
+* --- szesc realnych ringow ---
+X0 t0 vdd 0 RING3 c1={3.26*cpmm} c2={2.83*cpmm} c3={11.99*cpmm+chc}
+X1 t1 vdd 0 RING3 c1={1.77*cpmm} c2={1.78*cpmm} c3={21.13*cpmm+chc}
+X2 t2 vdd 0 RING3 c1={2.57*cpmm} c2={2.57*cpmm} c3={20.57*cpmm+chc+2*cvia}
+X3 t3 vdd 0 RING3 c1={0.65*cpmm} c2={0.65*cpmm} c3={16.76*cpmm+chc}
+X4 t4 vdd 0 RING3 c1={3.51*cpmm} c2={3.63*cpmm} c3={12.89*cpmm+chc}
+X5 t5 vdd 0 RING3 c1={0.65*cpmm} c2={0.65*cpmm} c3={18.49*cpmm+chc}
+
+* --- ten sam ring co /D1, ale sciezka jako linia dlugа zamiast pojemnosci ---
+*     Z0 = 142 Ohm, TD = 21.13 mm * 5.6 ps/mm = 118 ps
+XL1 lb la vdd 0 74LVC04A_NEX
+XL2 la lc vdd 0 74LVC04A_NEX
+XL3 lc ld vdd 0 74LVC04A_NEX
+CLa la 0 {1.77*cpmm}
+CLb lc 0 {1.78*cpmm}
+TL1 ld 0 le 0 Z0=142 TD=118p
+CLc le 0 {chc}
+Rfb le lb 1m
+
+* --- dodatkowo: co gdyby VCC bylo nizsze niz 3.3 V ---
+Vlo1 vlo1 0 DC 2.6
+Vlo2 vlo2 0 DC 2.2
+Vlo3 vlo3 0 DC 1.8
+XV1 tv1 vlo1 0 RING3 c1={1.77*cpmm} c2={1.78*cpmm} c3={21.13*cpmm+chc}
+XV2 tv2 vlo2 0 RING3 c1={1.77*cpmm} c2={1.78*cpmm} c3={21.13*cpmm+chc}
+XV3 tv3 vlo3 0 RING3 c1={1.77*cpmm} c2={1.78*cpmm} c3={21.13*cpmm+chc}
+
+.ic v(x0.n1)=0 v(x0.n2)=3.3 v(x0.n3)=0
+.ic v(x1.n1)=0 v(x1.n2)=3.3 v(x1.n3)=0
+.ic v(x2.n1)=0 v(x2.n2)=3.3 v(x2.n3)=0
+.ic v(x3.n1)=0 v(x3.n2)=3.3 v(x3.n3)=0
+.ic v(x4.n1)=0 v(x4.n2)=3.3 v(x4.n3)=0
+.ic v(x5.n1)=0 v(x5.n2)=3.3 v(x5.n3)=0
+.ic v(la)=0 v(lc)=3.3 v(ld)=0
+.ic v(xv1.n1)=0 v(xv1.n2)=2.6 v(xv1.n3)=0
+.ic v(xv2.n1)=0 v(xv2.n2)=2.2 v(xv2.n3)=0
+.ic v(xv3.n1)=0 v(xv3.n2)=1.8 v(xv3.n3)=0
+
+.options cshunt=1f
+
+.control
+set noaskquit
+set nobreak
+echo ""
+echo "==================================================================="
+echo " Szesc ringow z rzeczywista geometria sciezek (VCC = 3.3 V)"
+echo "==================================================================="
+
+tran 1p 400n 0 1p
+
+meas tran p0a when v(t0)=1.65 rise=3 from=120n
+meas tran p0b when v(t0)=1.65 rise=23 from=120n
+meas tran p1a when v(t1)=1.65 rise=3 from=120n
+meas tran p1b when v(t1)=1.65 rise=23 from=120n
+meas tran p2a when v(t2)=1.65 rise=3 from=120n
+meas tran p2b when v(t2)=1.65 rise=23 from=120n
+meas tran p3a when v(t3)=1.65 rise=3 from=120n
+meas tran p3b when v(t3)=1.65 rise=23 from=120n
+meas tran p4a when v(t4)=1.65 rise=3 from=120n
+meas tran p4b when v(t4)=1.65 rise=23 from=120n
+meas tran p5a when v(t5)=1.65 rise=3 from=120n
+meas tran p5b when v(t5)=1.65 rise=23 from=120n
+
+let fD0 = 20/(p0b-p0a)
+let fD1 = 20/(p1b-p1a)
+let fD2 = 20/(p2b-p2a)
+let fD3 = 20/(p3b-p3a)
+let fD4 = 20/(p4b-p4a)
+let fD5 = 20/(p5b-p5a)
+print fD0 fD1 fD2 fD3 fD4 fD5
+
+echo ""
+echo "--- Ten sam ring /D1 modelowany linia dluga zamiast pojemnoscia ---"
+meas tran pLa when v(le)=1.65 rise=3 from=120n
+meas tran pLb when v(le)=1.65 rise=23 from=120n
+let fD1_tline = 20/(pLb-pLa)
+print fD1_tline
+
+echo ""
+echo "--- Ten sam ring przy obnizonym VCC ---"
+meas tran q1a when v(tv1)=1.30 rise=3 from=120n
+meas tran q1b when v(tv1)=1.30 rise=23 from=120n
+meas tran q2a when v(tv2)=1.10 rise=3 from=120n
+meas tran q2b when v(tv2)=1.10 rise=13 from=120n
+meas tran q3a when v(tv3)=0.90 rise=3 from=120n
+meas tran q3b when v(tv3)=0.90 rise=13 from=120n
+let f_2v6 = 20/(q1b-q1a)
+let f_2v2 = 10/(q2b-q2a)
+let f_1v8 = 10/(q3b-q3a)
+print f_2v6 f_2v2 f_1v8
+echo ""
+.endc
+.end

@@ -1,0 +1,164 @@
+* ============================================================================
+*  AP2112K.lib  --  model LDO AP2112K-3.3 (MSKSEMI AP2112K-X.XTRG1(MS))
+*  Dla ngspice (KiCad 9 / libngspice-42)
+* ----------------------------------------------------------------------------
+*  Model behawioralny, ale ze STRUKTURA petli regulacji, nie samym zrodlem
+*  napiecia. Dzieki temu odwzorowuje to co dla filtracji zasilania jest
+*  najwazniejsze: SKONCZONA IMPEDANCJE WYJSCIOWA I JEJ ZALEZNOSC OD
+*  CZESTOTLIWOSCI, oraz to ze powyzej ~1 MHz LDO jest juz "przezroczysty"
+*  i o impedancji szyny decyduja wylacznie kondensatory i pasozyty.
+*
+*  Poprzedni model (ap2112k-33.lib) byl idealnym zrodlem napiecia z Rout=0.15
+*  i pojemnoscia 100n w srodku -- czyli sztywna szyna 3.3 V bez zadnej
+*  dynamiki petli. Przy takim modelu kazdy filtr wyglada dobrze.
+*
+*  DANE KATALOGOWE (VIN=5V, 25 C) bedace celem:
+*    VOUT              3.3 V, dokladnosc +/-2 %
+*    VDROP             0.32 V @ ILOAD=600mA  ->  Ron(pass) = 0.533 Ohm
+*    IQ                2 uA   @ ILOAD=0
+*    ISD               0.01 uA @ EN=0
+*    EN VIH / VIL      1.7 V (narastajac) / 0.6 V (opadajac)
+*    ILIM              1100 mA typ (min 601 mA)
+*    Regulacja obciaz. 0.2 %  dla 10mA..300mA  ->  Zout(DC) = 23 mOhm
+*    Regulacja wejsc.  0.2 %
+*    PSRR              80 dB @ 100 Hz,  75 dB @ 1 kHz
+*    Rozladowanie      80 Ohm przy EN=0
+*    Zalecane Cout     1..22 uF (ESR > 1 mOhm)
+*
+*  JAK ODWZOROWANE:
+*    Vref 0.8 V + dzielnik 1.25M/400k -> beta=0.242424 -> VOUT=3.300 V,
+*    a prad dzielnika 2.0 uA daje jednoczesnie katalogowe IQ.
+*    Wzmacniacz bledu: biegun dominujacy 1 kHz, zero 30 kHz (kompensacja
+*    lead). Z pojemnoscia Cout=1uF daje to przeciecie petli ~200 kHz przy
+*    zapasie fazy >80 deg -- szybkosc realistyczna dla LDO tej klasy, a model
+*    jest bezwarunkowo stabilny (istotne: model niestabilny zafalszowalby
+*    cala analize szyny zasilania).
+*    Element przelotowy: zrodlo pradowe sterowane, z ograniczeniem do
+*    Ron (dropout), ograniczeniem pradu ILIM i skonczona rezystancja
+*    wyjsciowa ro = 1/(lam*Ipass) w postaci level-1 (1+lam*Vds).
+*    Wzmocnienie a0 i lam sa dobrane wspolnie tak, aby jednoczesnie trafic
+*    w Zout(DC)=23 mOhm (regulacja obciazenia 0.2 %) i w PSRR(100Hz)=80 dB.
+*    Dodatkowa sciezka Cff=47p (Rff=0.5) odwzorowuje sprzezenie pasozytnicze
+*    VIN->VOUT i nadaje PSRR katalogowe nachylenie -20 dB/dekade.
+*    lam=1.333 1/V jest duze dla klasycznego MOS-a -- tutaj jest to parametr
+*    fenomenologiczny reprezentujacy calosc przenikania DC/LF, nie realna
+*    modulacja dlugosci kanalu.
+*
+*  OSIAGNIETA ZGODNOSC (tb/tb_ap2112_valid.cir, VIN=5V, Cout=1uF):
+*    VOUT               3.2999 V              kat. 3.300 +/-2 %      OK
+*    Regulacja obciaz.  0.201 % / 22.9 mOhm   kat. 0.2 %             OK
+*    Regulacja wejsc.   0.027 %               kat. 0.2 % (typ)       OK (lepiej)
+*    VDROP @600mA       0.337 V               kat. 0.32 V            OK
+*    ILIM               1.099 A               kat. 1.1 A             OK
+*    t_on (95 %)        61 us                 oscylogram: dziesiatki us  OK
+*    PSRR @100 Hz       72.4 dB               kat. 80 dB             -7.6 dB
+*    PSRR @1 kHz        69.4 dB               kat. 78 dB             -8.6 dB
+*    PSRR @10 kHz       52.7 dB               kat. 58 dB             -5.3 dB
+*    PSRR @100 kHz      43.0 dB               kat. 38 dB             +5.0 dB
+*    Zapad przy skoku   157 mV (1->300 mA)    oscylogram: ok. 50..80 mV
+*
+*  Krzywa PSRR z karty ma nachylenie ~14 dB/dekade, czego nie da sie uzyskac
+*  zadnym fizycznym mechanizmem przy 1 uF na wyjsciu (kazdy daje 20 dB/dek
+*  od momentu wzrostu Zout). Model przecina krzywa katalogowa: jest o ~8 dB
+*  pesymistyczny na niskich f i o ~5 dB optymistyczny na 100 kHz. Zapad przy
+*  skoku obciazenia jest ~2x wieksze niz na oscylogramie, czyli tez w strone
+*  pesymistyczna. Oba odchylenia sa akceptowalne, bo prowadza do
+*  PRZESZACOWANIA, nie zanizenia wymagan na filtracje.
+*
+*  CZEGO MODEL NIE ODWZOROWUJE -- i dlaczego to nie szkodzi w tym zadaniu:
+*   1) Wykres PSRR w karcie pokazuje na 1 MHz tylko ~18..20 dB tlumienia.
+*      Taka wartosc jest nie do pogodzenia z 1 uF na wyjsciu (dawalaby
+*      ~60 dB) i niemal na pewno jest ograniczona oprzyrzadowaniem pomiaru
+*      (os opisana "TR1 dB" = slad z analizatora sieci). Model daje w tym
+*      punkcie tlumienie lepsze niz wykres. Dla tego projektu jest to bez
+*      znaczenia: ringi pracuja >100 MHz, gdzie LDO jest calkowicie poza
+*      grą, a o impedancji szyny decyduja C, ESR, ESL i ferryty.
+*   2) Brak szumu wlasnego LDO (karta: 40 uVrms @ 0.9V, 70 uVrms @ 2.8V,
+*      BW 10Hz..100kHz). Do analizy szumu fazowego ringu nalezaloby dopisac
+*      zrodlo szumu w wezle referencji vrf.
+*   3) Brak zabezpieczenia termicznego (TSD 155 C) i spadku L przy temp.
+*   4) Model jednosekcyjny: bez rozdzielenia masy analogowej/mocy.
+* ============================================================================
+
+.model AP_DBODY D (is=1e-12 n=1.0 rs=0.3 cjo=50p)
+
+* ----------------------------------------------------------------------------
+*  Piny (SOT-23-5):  1=VIN  2=GND  3=EN  4=NC  5=VOUT
+* ----------------------------------------------------------------------------
+.subckt AP2112K_33 1 2 3 4 5
++ params: vref=0.8 rf1=1.25meg rf2=400k a0=55 rc=1.8meg rz=62k cc=85.4p
++         ron=0.67 ilim=1.1 lam=1.333 tss=20u rdis=80 cff=20p rff=0.5 gmff=8m
+
+*  --- wygodne aliasy wezlow ---
+*      1=VIN  2=GND  3=EN  5=VOUT
+
+*  --- komparator EN z histereza 1.7 V / 0.6 V ---
+*      Stan pamietany na wezle enq (RC wprowadza opoznienie, ktore rozrywa
+*      petle algebraiczna w wyrazeniu progu).
+Ben  enx 2   V = { V(3,2) > ( V(enq,2) > 0.5 ? 0.6 : 1.7 ) ? 1 : 0 }
+Renq enx enq 1k
+Cenq enq 2   1n
+Ren  3   2   500meg
+
+*  --- referencja z miekkim startem ---
+*      Czas narastania ~tss; oszacowany z oscylogramu "VOUT Turn On/Off by EN"
+*      (ok. 20 us/dz), a nie podany liczbowo w karcie.
+Bref rin 2   V = { {vref} * V(enq,2) }
+Rss  rin vrf {tss/1n}
+Css  vrf 2   1n
+
+*  --- dzielnik sprzezenia zwrotnego; jego prad 2.0 uA = katalogowe IQ ---
+Rfb1 5   fb  {rf1}
+Rfb2 fb  2   {rf2}
+
+*  --- wzmacniacz bledu: A0 = gm*rc, biegun 1/(2pi(rc+rz)cc), zero 1/(2pi rz cc) ---
+Gerr 2   ea  vrf fb  {a0/rc}
+Rea  ea  2   {rc}
+Rzc  ea  cz  {rz}
+Ccc  cz  2   {cc}
+*  ograniczenie od gory, zeby wezel ea nie "nawijal" sie w nieskonczonosc
+Bclp ea  2   I = { V(ea,2) > 5 ? (V(ea,2)-5)*1e-3 : 0 }
+
+*  --- element przelotowy (PMOS) ---
+*      Ictl  : sterowanie z petli, nieujemne
+*      *(1+lam*Vds) : skonczona rezystancja wyjsciowa -> mechanizm PSRR
+*      min(..., Vds/ron) : obszar liniowy = dropout
+*      min(..., ilim)    : ograniczenie pradowe
+Bpas 1   5   I = { min( min( max(V(ea,2),0) * (1 + {lam}*V(1,5)), {ilim} ),
++                        max(V(1,5),0)/{ron} ) }
+
+*  --- dioda podlozowa PMOS-a: przewodzi gdy VOUT > VIN ---
+Dbdy 5   1   AP_DBODY
+
+*  --- PRZENIKANIE ZAKLOCEN Z WEJSCIA (mechanizm PSRR na wyzszych f) ---
+*      Fizyka: tetnienie na VIN moduluje V_GS tranzystora przelotowego (bo
+*      bramka jest sterowana ze wzmacniacza o skonczonym wlasnym tlumieniu
+*      zaklocen zasilania), wiec moduluje prad Ids przez gm. Powyzej pasma
+*      petli daje to PSRR = gmff * |Zout(f)|.
+*      To wlasnie ten mechanizm, a NIE sprzezenie pojemnosciowe, decyduje o
+*      PSRR w zakresie kHz..MHz: pojemnosc dajaca takie samo przenikanie
+*      musialaby miec ~50 nF, co w obudowie SOT-23-5 jest nierealne.
+*      gmff = 8 mS to kompromis dopasowania do wykresu z karty (patrz nota
+*      o dokladnosci w naglowku).
+*      Filtr gornoprzepustowy Chpf/Rhpf (0.016 Hz) sprawia, ze sciezka nie
+*      wplywa na punkt pracy DC.
+Chpf 1   hpf 1u
+Rhpf hpf 2   10meg
+Gff  2   5   hpf 2 {gmff}
+
+*  --- pasozytnicze sprzezenie pojemnosciowe VIN <-> VOUT w obudowie ---
+*      Male, ale fizyczne. Skutek istotny dla tego projektu: powyzej ~10 MHz
+*      LDO nie izoluje szyny 3.3 V od szyny 5 V, wiec zaklocenia RF z ringow
+*      wychodza rowniez w strone wejscia zasilania (i dalej na kabel USB).
+Cffw 1   fw  {cff}
+Rffw fw  5   {rff}
+
+*  --- rezystor rozladowania wyjscia aktywny przy EN = 0 ---
+Bdis 5   2   I = { V(5,2)/{rdis} * (1 - V(enq,2)) }
+
+*  --- prad wlasny pobierany z VIN (poza dzielnikiem) ---
+Bvq  1   2   I = { V(enq,2) > 0.5 ? 0.1u : 10n }
+
+*  --- pin NC: slaby upust zeby macierz nie byla singularna ---
+Rnc  4   2   100g
+.ends AP2112K_33

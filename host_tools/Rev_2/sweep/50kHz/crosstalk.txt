@@ -1,0 +1,44 @@
+=== Rev_2/sweep/50kHz/channelA-H.bin ===
+4194304 simultaneous samples, noise floor 1 sigma = 0.00049
+bias (fraction of ones): A=0.5003  B=0.5134  C=0.5090  D=0.5110  E=0.5061  F=0.5192  G=0.5115  H=0.4925
+
+Pearson correlation at lag 0:
+              A        B        C        D        E        F        G        H
+   A          .  -0.0045  -0.0012  -0.0010   0.0002  -0.0004  -0.0001   0.0002
+   B    -0.0045        .   0.0954  -0.0007   0.0002  -0.0002   0.0001  -0.0001
+   C    -0.0012   0.0954        .  -0.0028   0.0002  -0.0002  -0.0002   0.0008
+   D    -0.0010  -0.0007  -0.0028        .  -0.0003   0.0010  -0.0003   0.0008
+   E     0.0002   0.0002   0.0002  -0.0003        .   0.1002  -0.0007   0.0009
+   F    -0.0004  -0.0002  -0.0002   0.0010   0.1002        .  -0.0056  -0.0009
+   G    -0.0001   0.0001  -0.0002  -0.0003  -0.0007  -0.0056        .   0.0713
+   H     0.0002  -0.0001   0.0008   0.0008   0.0009  -0.0009   0.0713        .
+
+Pairs above 4 sigma, with their strongest non-zero lag:
+   E-F:  lag 0 r=+0.1002 (205 sigma)   best r=+0.0013 at lag -1   MI=0.007260 bit   same group
+   B-C:  lag 0 r=+0.0954 (195 sigma)   best r=+0.0024 at lag +1   MI=0.006574 bit   same group
+   G-H:  lag 0 r=+0.0713 (146 sigma)   best r=+0.0014 at lag +51   MI=0.003675 bit   same group
+   F-G:  lag 0 r=-0.0056 ( 11 sigma)   best r=-0.0013 at lag -37   MI=0.000022 bit   same group
+   A-B:  lag 0 r=-0.0045 (  9 sigma)   best r=-0.0015 at lag +16   MI=0.000015 bit   same group
+   C-D:  lag 0 r=-0.0028 (  6 sigma)   best r=+0.0017 at lag -49   MI=0.000006 bit   same group
+
+Total mutual information over all 28 pairs: 0.017558 bit/sample
+
+Coupling by ring group (Rev-1 found packages, not distance, to be what mattered):
+   group                                pairs    max |r|   mean |r|   sum MI [bit]
+   T     (rings 1-4, latch B, 3G04)         6     0.0954     0.0176       0.006597
+   plain (rings 5-8, latch A, 1G04)         6     0.1002     0.0299       0.010959
+   across groups                           16     0.0010     0.0003       0.000002
+   (noise floor 1 sigma = 0.00049, so |r| below 0.0020 is not resolvable at 4 sigma)
+
+Per-channel min-entropy used for the budget (bit per bit, from the supplied assessment):
+   A=0.8419  B=0.8052  C=0.8455  D=0.8256  E=0.8422  F=0.8011  G=0.8163  H=0.8307
+Entropy budget (sum over channels): 6.608509 bit/sample
+Coupling costs 0.27% of the budget
+
+Subsets: entropy against the worst coupling inside the subset
+   subset    note                       sum H   worst |r|   sigma
+   ABCDEFGH  all eight                 6.6085      0.1002     205
+   ABCD      T                         3.3182      0.0954     195
+   EFGH      plain                     3.2903      0.1002     205
+   BDEG      best 4 by coupling        3.2893      0.0007       1
+

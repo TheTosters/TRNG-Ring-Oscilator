@@ -7,7 +7,9 @@ While running it prints a live progress line with the amount captured, the
 instantaneous throughput and an ETA.
 
 The captured file is the raw, bit-interleaved stream that
-``check_streams_corelation.py`` later splits into the individual sub-streams.
+``check_streams_corelation_rev1.py`` (6 rings) or ``check_streams_corelation_rev2.py``
+(8 rings) later splits into the individual sub-streams. The tool itself is
+revision-agnostic - it only moves bytes.
 
 If ``--sequence`` is given, each character is written on its own (one write per
 character) with a delay in between; only once the whole sequence has been sent

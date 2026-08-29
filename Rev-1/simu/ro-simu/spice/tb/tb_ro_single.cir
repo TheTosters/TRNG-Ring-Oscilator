@@ -1,0 +1,83 @@
+* tb_ro_single.cir -- pojedynczy ring 3 inwerterow 74LVC04A
+* Cel: czestotliwosc oscylacji, amplituda, oraz PRAD POBIERANY Z ZASILANIA
+*      (wartosc srednia i szczytowa) -- to jest zrodlo zaklocen dla filtra.
+* Zasilanie idealne (sztywne 3.3 V) zeby oddzielic wlasnosci ringu od
+* wlasnosci sieci zasilania.
+
+.include ../models/74LVC04A.lib
+
+.param vdd=3.3
+.param ctrace=1p      ; pojemnosc sciezki miedzy bramkami w ringu
+
+Vdd  vdd 0 DC {vdd}
+
+* ring: 3 inwertery w petli
+X1  n3 n1 vdd 0 74LVC04A_NEX
+X2  n1 n2 vdd 0 74LVC04A_NEX
+X3  n2 n3 vdd 0 74LVC04A_NEX
+Ct1 n1 0 {ctrace}
+Ct2 n2 0 {ctrace}
+Ct3 n3 0 {ctrace}
+
+* warunek startowy: rozrywamy symetrie, inaczej ring moze utknac w punkcie
+* rownowagi (wszystkie wezly w VM) i nie wystartowac
+.ic v(n1)=0 v(n2)={vdd} v(n3)=0
+
+.control
+set noaskquit
+set nobreak
+echo ""
+echo "=============================================================="
+echo " Pojedynczy ring 3 x 74LVC04A, zasilanie idealne 3.3 V"
+echo "=============================================================="
+
+tran 1p 300n 0 1p
+echo ""
+echo "--- Czestotliwosc oscylacji ---"
+* okres liczony z 20 okresow w oknie ustalonym (po 100 ns)
+meas tran t1 when v(n1)=1.65 rise=3  from=100n
+meas tran t2 when v(n1)=1.65 rise=23 from=100n
+let tper = (t2-t1)/20
+let fosc = 1/tper
+print tper fosc
+echo ""
+
+echo "--- Amplituda i kształt na wezle pomiarowym ---"
+meas tran vhi max v(n1) from=150n to=250n
+meas tran vlo min v(n1) from=150n to=250n
+print vhi vlo
+* czas narastania/opadania (10-90 %)
+meas tran tr trig v(n1) val=0.33 rise=5 targ v(n1) val=2.97 rise=5 from=150n
+meas tran tf trig v(n1) val=2.97 fall=5 targ v(n1) val=0.33 fall=5 from=150n
+print tr tf
+echo ""
+
+echo "--- Prad zasilania calego ringu (3 bramki) ---"
+let icc = -i(Vdd)
+meas tran icc_avg avg icc from=150n to=250n
+meas tran icc_max max icc from=150n to=250n
+meas tran icc_min min icc from=150n to=250n
+print icc_avg icc_max icc_min
+echo "  icc_avg to prad DC ktory musi dostarczyc filtr;"
+echo "  icc_max/icc_min to amplituda impulsow ktore filtr musi zbocznikowac."
+echo ""
+
+echo "--- Sprawdzenie spojnosci z C_PD ---"
+echo "  oczekiwane I_avg ~ 3 * (C_PD + C_load) * VDD * fosc"
+let iexp = 3*(9.9p+4.0p+1p)*3.3*fosc
+print iexp
+echo ""
+
+set wr_singlescale
+set wr_vecnames
+wrdata ../out/ro_single.dat v(n1) v(n2) v(n3) icc
+
+* widmo pradu zasilania -- pokazuje ktore czestotliwosci filtr musi tlumic
+linearize icc
+fft icc
+let mag = db(mag(icc))
+wrdata ../out/ro_single_fft.dat mag
+echo "--- Widmo pradu zasilania zapisane do out/ro_single_fft.dat ---"
+echo ""
+.endc
+.end

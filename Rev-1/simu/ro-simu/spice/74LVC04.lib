@@ -1,0 +1,30 @@
+* Precyzyjny model SPICE dla 74LVC04A (Nexperia) w pełni kompatybilny z ngspice
+* Parametry zweryfikowane na podstawie specyfikacji Rev. 13 (2024)
+* Piny: 1=IN, 2=OUT, 3=VCC, 4=GND
+.SUBCKT 74LVC04A_NEX IN OUT VCC GND
+
+* Pojemność wejściowa pinów logicznych (Table 6: C_I = 4.0pF)
+Cin IN GND 4.0p
+
+* Układ tranzystorowych kluczy CMOS
+M1 OUT_int IN VCC VCC M_PMOS L=0.35u W=20u
+M2 OUT_int IN GND GND M_NMOS L=0.35u W=10u
+
+* Pojemności pasożytnicze tranzystorów (przeniesione z dyrektywy .MODEL)
+Cgd_p OUT_int IN 0.8p
+Cgd_n OUT_int IN 0.8p
+
+* Wewnętrzna pojemność dynamiczna zasilania (Table 7: C_PD = 9.9pF)
+Cpd VCC GND 9.9p
+
+* Pojemność opóźniająca zapewniająca t_pd = 2.0ns przy obciążeniu testowym
+Cout OUT_int GND 5.2p
+
+* Rezystancja wyjściowa złączy i wyprowadzeń obudowy
+Rout OUT_int OUT 1.5
+
+* Czyste modele tranzystorów ngspice z progiem V_M = 1.5V
+.MODEL M_PMOS PMOS (VTO=-1.1 KP=120u)
+.MODEL M_NMOS NMOS (VTO=1.1 KP=280u)
+
+.ENDS

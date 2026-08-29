@@ -60,3 +60,47 @@ Rev-1/firmware/Release/**
 Rev-1/firmware/Debug/**
 Rev-2/hardware/RO-hardware-backups/**
 *.zip
+
+# ── Wyjatki: gotowy firmware do wgrania bez kompilacji ──────────────────────
+!Rev-1/prebuilt/
+!Rev-1/prebuilt/*.bin
+!Rev-1/prebuilt/*.elf
+!Rev-2/prebuilt/
+!Rev-2/prebuilt/*.bin
+!Rev-2/prebuilt/*.elf
+
+# ── Narzedzia hosta: srodowisko i pliki generowane ──────────────────────────
+host_tools/.venv/
+host_tools/.idea/
+**/__pycache__/
+host_tools/**/stream_analysis/
+*.npy
+*.csv
+*.png
+
+# ── Dane pomiarowe ─────────────────────────────────────────────────────────
+# Surowe strumienie (host_tools/Rev_*/**/*.bin) sa pominiete przez regule *.bin
+# powyzej - lacznie ponad 400 MB i odtwarzalne z plytki w kilkanascie minut.
+# Wyniki analizy (results.txt, crosstalk.txt, summary.json, sweep_summary.*)
+# zostaja w repo, bo to one sa dowodem, a wazy to okolo 0.4 MB.
+
+# ── Symulacje SPICE (Rev-1/simu) ───────────────────────────────────────────
+# Zrodla zostaja: skrypty .py, modele .lib, testbenche tb/*.cir i README.md
+# (razem ~200 kB). Katalog out/ jest w calosci generowany przez te skrypty -
+# 254 z 262 plikow .cir powstaja z szablonow w kodzie, a wszystkie .dat to
+# wyniki ngspice. Odtworzenie: uruchomic wybrany skrypt pdn_*.py / ro_*.py.
+Rev-1/simu/ro-simu/spice/out/
+*.dat
+# Modele SPICE to tez .lib - regula "Libraries" wyzej jest o bibliotekach
+# linkera i przypadkiem je lapie, bez nich skrypty nie ruszaja.
+!Rev-1/simu/ro-simu/spice/*.lib
+!Rev-1/simu/ro-simu/spice/models/*.lib
+# Karty katalogowe pobrane z LCSC - cudze, latwo dostepne, 1.7 MB
+Rev-1/simu/ro-simu/spice/*.pdf
+
+# ── Rzeczy spoza projektu ──────────────────────────────────────────────────
+# Zewnetrzna biblioteka Pythona (site-packages), instalowana osobno
+easyeda2kicad/
+# Katalog roboczy
+tmp/
+
